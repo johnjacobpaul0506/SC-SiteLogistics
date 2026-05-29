@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Site Logistics Planner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #001B49; color: #f9fafb; min-height: 100vh; font-size: 14px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* ── Topbar ──────────────────────────────────────────────────────────── */
+.topbar { background: #0a1f4e; border-bottom: 2px solid #1e3a6e; height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: sticky; top: 0; z-index: 200; gap: 12px; flex-shrink: 0; }
+.topbar-left { display: flex; align-items: center; gap: 14px; }
+.topbar-title { font-size: 17px; font-weight: bold; color: #f9fafb; line-height: 1.1; }
+.topbar-sub { font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; color: #4b6a9e; margin-top: 3px; }
+.topbar-icon { font-size: 26px; }
+.topbar-right { display: flex; justify-content: flex-end; align-items: center; gap: 14px; min-width: 140px; }
+.topbar-logo { height: 42px; max-width: 170px; object-fit: contain; mix-blend-mode: multiply; }
+.btn-load-top { background: linear-gradient(135deg,#3b82f6,#1d4ed8); color: #fff; border: none; padding: 9px 16px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; font-family: Arial, sans-serif; transition: all 0.15s; white-space: nowrap; box-shadow: 0 2px 8px rgba(59,130,246,0.35); }
+.btn-load-top:hover { background: linear-gradient(135deg,#2563eb,#1e40af); }
+.btn-load-idle { background: linear-gradient(135deg,#3b82f6,#1d4ed8); color: #fff; border: none; padding: 11px 26px; border-radius: 9px; font-size: 13px; font-weight: bold; cursor: pointer; font-family: Arial, sans-serif; transition: all 0.15s; margin-top: 6px; box-shadow: 0 3px 12px rgba(59,130,246,0.4); }
+.btn-load-idle:hover { background: linear-gradient(135deg,#2563eb,#1e40af); }
+
+/* ── Layout ──────────────────────────────────────────────────────────── */
+.workspace { flex: 1; display: flex; min-height: 0; }
+.sidebar { width: 250px; min-width: 250px; background: #0a1f4e; border-right: 1px solid #1e3a6e; padding: 18px 14px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+.section-header { font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; color: #4b6a9e; padding: 14px 8px 6px 8px; }
+
+/* ── Tool buttons ────────────────────────────────────────────────────── */
+.tool-group-label { font-size: 9px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; color: #4b6a9e; padding: 12px 8px 4px 8px; }
+.tool-group-label:first-child { padding-top: 2px; }
+.tool-item { display: flex; align-items: center; gap: 11px; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; color: #94a3b8; font-size: 13px; background: transparent; border: 1px solid transparent; text-align: left; font-family: Arial, sans-serif; font-weight: 600; }
+.tool-item:hover { background: rgba(59,130,246,0.07); color: #f9fafb; }
+.tool-item.active { background: rgba(59,130,246,0.12); border-left-color: #3b82f6; color: #93c5fd; }
+.tool-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.25); }
+.tool-icon { width: 18px; text-align: center; font-size: 15px; flex-shrink: 0; }
+
+.s-divider { border: none; border-top: 1px solid #1e3a6e; margin: 8px 0; }
+
+.btn-row { display: flex; gap: 6px; }
+.btn-act { flex: 1; background: transparent; border: 1px solid #1e3a6e; color: #94a3b8; padding: 8px 6px; border-radius: 7px; font-size: 11px; font-weight: bold; cursor: pointer; font-family: Arial, sans-serif; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.btn-act:hover { border-color: #3b82f6; color: #f9fafb; background: rgba(59,130,246,0.06); }
+.btn-act.danger:hover { border-color: #ef4444; color: #fca5a5; }
+
+.btn-export { background: linear-gradient(135deg,#3b82f6,#1d4ed8); color: #fff; border: none; padding: 10px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%; font-family: Arial, sans-serif; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 7px; box-shadow: 0 2px 8px rgba(59,130,246,0.35); }
+.btn-export:hover { background: linear-gradient(135deg,#2563eb,#1e40af); }
+
+.legend-item { display: flex; align-items: center; gap: 9px; font-size: 12px; padding: 3px 4px; color: #cbd5e1; }
+.legend-swatch { width: 15px; height: 15px; border-radius: 3px; flex-shrink: 0; border: 1px solid #1e3a6e; }
+
+.page-nav { display: flex; gap: 6px; }
+.page-btn { flex: 1; background: #111827; border: 1px solid #1e3a6e; color: #93c5fd; padding: 7px; border-radius: 7px; font-size: 11px; font-weight: bold; cursor: pointer; font-family: Arial, sans-serif; }
+.page-btn:disabled { opacity: 0.35; cursor: default; }
+.page-btn:hover:not(:disabled) { border-color: #3b82f6; }
+
+/* ── Main canvas ─────────────────────────────────────────────────────── */
+.main { flex: 1; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; overflow: auto; min-width: 0; }
+.hint-bar { background: #1e293b; border: 1px solid #1e3a6e; border-radius: 8px; padding: 10px 16px; font-size: 12.5px; color: #cbd5e1; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.hint-bar b { color: #93c5fd; }
+.canvas-wrap { background: #1e293b; border: 1px solid #1e3a6e; border-radius: 10px; overflow: hidden; align-self: center; max-width: 100%; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+.canvas-wrap svg { display: block; width: 100%; touch-action: none; background: #fff; }
+
+.idle { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #4b6a9e; text-align: center; }
+.idle-icon { font-size: 50px; opacity: 0.25; }
+.idle-title { font-size: 18px; font-weight: bold; color: #4b6a9e; }
+.idle-sub { font-size: 13px; color: #374151; max-width: 420px; line-height: 1.6; }
+.idle-code { font-family: 'Courier New', monospace; background: #111827; border: 1px solid #1e3a6e; padding: 2px 7px; border-radius: 5px; color: #93c5fd; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1e3a6e; border-radius: 3px; }
+
+.toast { position: fixed; bottom: 28px; right: 28px; background: #3b82f6; color: #fff; padding: 11px 18px; border-radius: 8px; font-size: 12px; font-weight: bold; box-shadow: 0 4px 18px rgba(0,0,0,0.4); z-index: 9999; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+
+/* ═══ Welcome screen ═══ */
+.welcome { position: fixed; inset: 0; z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 24px; overflow: auto; transition: opacity 0.5s ease, transform 0.5s ease; }
+.welcome.hide { opacity: 0; transform: scale(1.04); pointer-events: none; }
+.welcome-bg { position: absolute; inset: 0; background:
+    radial-gradient(circle at 18% 22%, rgba(59,130,246,0.25), transparent 42%),
+    radial-gradient(circle at 82% 78%, rgba(245,158,11,0.22), transparent 45%),
+    linear-gradient(135deg, #001B49 0%, #052b6e 55%, #001B49 100%);
+  overflow: hidden; }
+.welcome-bg::before { content: ""; position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 44px 44px; mask-image: radial-gradient(circle at 50% 45%, #000 30%, transparent 78%); }
+.welcome-card { position: relative; max-width: 680px; width: 100%; background: rgba(10,31,78,0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(123,160,216,0.35); border-radius: 22px; padding: 40px 44px 34px; box-shadow: 0 24px 70px rgba(0,0,0,0.55); text-align: center; animation: rise 0.6s cubic-bezier(.2,.8,.2,1); }
+@keyframes rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+.welcome-crane { font-size: 58px; line-height: 1; margin-bottom: 6px; animation: sway 3.5s ease-in-out infinite; transform-origin: 50% 80%; }
+@keyframes sway { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+.welcome-eyebrow { display: inline-block; font-size: 11px; font-weight: bold; letter-spacing: 0.18em; text-transform: uppercase; color: #001B49; background: linear-gradient(135deg,#f59e0b,#fbbf24); padding: 6px 14px; border-radius: 999px; margin-bottom: 16px; }
+.welcome-title { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 14px; line-height: 1.15; }
+.welcome-lead { font-size: 16.5px; color: #dbe7ff; line-height: 1.6; margin-bottom: 12px; }
+.welcome-lead strong { color: #fbbf24; }
+.welcome-body { font-size: 14.5px; color: #a9c2e8; line-height: 1.65; margin-bottom: 26px; }
+.welcome-body em { color: #fff; font-style: normal; font-weight: 700; }
+.welcome-steps { display: grid; grid-template-columns: 1fr; gap: 12px; text-align: left; margin-bottom: 30px; }
+@media (min-width: 620px) { .welcome-steps { grid-template-columns: repeat(3,1fr); } }
+.wstep { background: rgba(255,255,255,0.05); border: 1px solid rgba(123,160,216,0.2); border-radius: 14px; padding: 16px 14px; font-size: 12.5px; color: #c6d8f5; line-height: 1.45; display: flex; gap: 10px; align-items: flex-start; }
+.wstep b { color: #fff; }
+.wstep-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg,#3b82f6,#1d4ed8); color: #fff; font-weight: bold; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+.welcome-btn { background: linear-gradient(135deg,#f59e0b,#f97316); color: #001B49; border: none; font-size: 18px; font-weight: 800; padding: 15px 44px; border-radius: 14px; cursor: pointer; box-shadow: 0 8px 24px rgba(245,158,11,0.45); transition: transform 0.15s, box-shadow 0.15s; font-family: Arial, sans-serif; }
+.welcome-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 30px rgba(245,158,11,0.6); }
+.welcome-foot { margin-top: 16px; font-size: 12px; color: #7da0d8; }
+</style>
+</head>
+<body>
+
+<!-- ═══ WELCOME / START SCREEN ═══ -->
+<div class="welcome" id="welcome">
+  <div class="welcome-bg"></div>
+  <div class="welcome-card">
+    <div class="welcome-crane">🏗️</div>
+    <div class="welcome-eyebrow">Site Logistics Challenge</div>
+    <h1 class="welcome-title">Hello there, future builder! 👋</h1>
+    <p class="welcome-lead">
+      Welcome to your very first day on site. The plans are approved, the land is cleared,
+      and <strong>you're in charge</strong> of setting up the construction site for your brand-new school.
+    </p>
+    <p class="welcome-body">
+      Every great building starts long before the first brick is laid — with a smart, safe, well-organised site.
+      Where will the cranes go? How will trucks get in and out? Where do your crew park, eat, and gather if there's an emergency?
+      That's <em>your</em> call now.
+    </p>
+
+    <div class="welcome-steps">
+      <div class="wstep"><span class="wstep-num">1</span><div><b>Plan the layout</b><br>Use the toolkit to place roads, cranes, buildings, storage, fencing and more.</div></div>
+      <div class="wstep"><span class="wstep-num">2</span><div><b>Think like a pro</b><br>Keep it safe and efficient — mind the crane swing, exclusion zones and traffic flow.</div></div>
+      <div class="wstep"><span class="wstep-num">3</span><div><b>Show it off</b><br>Export your finished site plan with your name on it and share your masterpiece.</div></div>
+    </div>
+
+    <button class="welcome-btn" onclick="startGame()">Let's build it! 🚀</button>
+    <div class="welcome-foot">No experience needed — just bring your imagination.</div>
+  </div>
+</div>
+
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-icon">🏗️</span>
+    <div>
+      <div class="topbar-title">Site Logistics Challenge</div>
+      <div class="topbar-sub">Plan your school's construction site</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="btn-load-top" onclick="document.getElementById('pdfUpload').click()">📂 Load PDF</button>
+    <img src="logo.png" class="topbar-logo" alt="" onerror="this.style.display='none'">
+  </div>
+</div>
+<input type="file" id="pdfUpload" accept="application/pdf" style="display:none" onchange="loadFromFile(this.files[0])">
+
+<div class="workspace">
+  <aside class="sidebar">
+    <div class="section-header">Tools</div>
+    <div id="toolList"></div>
+
+    <hr class="s-divider">
+    <div class="section-header">Actions</div>
+    <div class="btn-row">
+      <button class="btn-act" onclick="undo()">↶ Undo</button>
+      <button class="btn-act danger" onclick="clearAll()">🗑 Clear</button>
+    </div>
+    <div style="height:8px"></div>
+    <button class="btn-export" onclick="exportPng()">⬇ Export PNG</button>
+
+    <hr class="s-divider">
+    <div class="section-header">Legend</div>
+    <div id="legend"></div>
+
+    <div id="pageNavWrap" style="display:none">
+      <hr class="s-divider">
+      <div class="section-header">Page <span id="pgCur">1</span> / <span id="pgTot">1</span></div>
+      <div class="page-nav">
+        <button class="page-btn" id="pgPrev" onclick="changePage(-1)">◀ Prev</button>
+        <button class="page-btn" id="pgNext" onclick="changePage(1)">Next ▶</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="hint-bar" id="hintBar">
+      <span>🖱️</span> <span id="hintText">Loading site plan…</span>
+    </div>
+    <div id="stage"></div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const SVGNS = "http://www.w3.org/2000/svg";
+
+const TOOLS = {
+  select:    { label: "Select / Move",  icon: "✋", hint: "Drag items to reposition. Click to select, then press Delete to remove." },
+  access:    { label: "Access Road",    icon: "🛣️", hint: "Click to add points along the access road. Double-click or press Enter/Esc to finish." },
+  fence:     { label: "Fencing / Hoarding", icon: "🚧", hint: "Click to add points along the fence line. Double-click or Enter/Esc to finish." },
+  crane:     { label: "Crane",          icon: "🏗️", hint: "Click and drag outward to set the swing radius, then release to place. Re-select to resize via the edge handle." },
+  vehicle:   { label: "Vehicle",        icon: "🚛", hint: "Click to place a vehicle marker." },
+  building:  { label: "Building",       icon: "🏢", hint: "Click to add corner points of the building. Double-click or Enter/Esc to close the shape." },
+  storage:   { label: "Material Storage", icon: "📦", hint: "Drag to draw a material storage area." },
+  laydown:   { label: "Laydown / Dump", icon: "🪨", hint: "Drag to draw a material laydown / dumping zone." },
+  exclusion: { label: "Exclusion Zone", icon: "⛔", hint: "Drag to draw a no-go / exclusion zone." },
+  tpz:       { label: "Tree Protection",icon: "🌳", hint: "Click to add corner points of the TPZ. Double-click or Enter/Esc to close the shape." },
+  parking:   { label: "Parking",        icon: "🅿️", hint: "Drag to draw a parking area." },
+  toilet:    { label: "Toilets",        icon: "🚻", hint: "Drag to draw a site toilet / amenities block." },
+  rest:      { label: "Rest Area",      icon: "🛋️", hint: "Drag to draw a rest / break area." },
+  lunch:     { label: "Lunch Area",     icon: "🍴", hint: "Drag to draw a lunch / crib room area." },
+  bin:       { label: "Waste Bin",      icon: "🗑️", hint: "Click to place a waste bin / skip." },
+  assembly:  { label: "Assembly Point", icon: "🚶", hint: "Click to place an emergency assembly point." },
+  draw:      { label: "Free Draw",      icon: "✏️", hint: "Click and drag to sketch freely." },
+  erase:     { label: "Delete",         icon: "🧽", hint: "Click an item to remove it." },
+};
+// Distinct, well-spaced hues — every neighbour clearly different
+const PALETTE = {
+  access:   "#475569",  // slate grey — reads as a road
+  fence:    "#f97316",  // orange
+  crane:    "#dc2626",  // red
+  vehicle:  "#2563eb",  // blue
+  building: "#7c3aed",  // violet
+  storage:  "#0891b2",  // teal/cyan
+  laydown:  "#ca8a04",  // mustard/amber
+  exclusion:"#e11d48",  // crimson (hazard)
+  tpz:      "#16a34a",  // green
+  parking:  "#4f46e5",  // indigo
+  toilet:   "#0d9488",  // dark teal
+  rest:     "#db2777",  // pink
+  lunch:    "#d97706",  // burnt orange
+  bin:      "#78716c",  // stone grey
+  assembly: "#65a30d",  // lime green
+  draw:     "#0f172a"   // near-black
+};
+// which tools are line / rect / poly / point — drives placement + rendering
+const LINE_TOOLS = ["access", "fence"];
+const RECT_TOOLS = ["storage", "laydown", "exclusion", "parking", "toilet", "rest", "lunch"];
+const POLY_TOOLS = ["building", "tpz"];
+const POINT_TOOLS = ["vehicle", "bin", "assembly"];
+const RECT_LABEL = { building:"Building", storage:"Storage", laydown:"Laydown", exclusion:"EXCLUSION", tpz:"TPZ", parking:"Parking", toilet:"Toilets", rest:"Rest Area", lunch:"Lunch Area" };
+
+// sidebar grouping
+const TOOL_GROUPS = [
+  ["Navigation", ["select"]],
+  ["Linear", ["access", "fence"]],
+  ["Plant & Vehicles", ["crane", "vehicle"]],
+  ["Zones & Areas", ["building", "storage", "laydown", "exclusion", "tpz", "parking"]],
+  ["Welfare & Amenities", ["toilet", "rest", "lunch"]],
+  ["Points", ["bin", "assembly"]],
+  ["Other", ["draw", "erase"]],
+];
+const LEGEND = [
+  ["Access Road","access"],["Fencing / Hoarding","fence"],["Crane + swing","crane"],
+  ["Vehicle","vehicle"],["Building","building"],["Material Storage","storage"],
+  ["Laydown / Dump","laydown"],["Exclusion Zone","exclusion"],["Tree Protection","tpz"],
+  ["Parking","parking"],["Toilets","toilet"],["Rest Area","rest"],["Lunch Area","lunch"],
+  ["Waste Bin","bin"],["Assembly Point","assembly"]
+];
+
+// ── State ───────────────────────────────────────────────────────────────
+let tool = "select";
+let items = [];
+let draft = null;
+let selectedId = null;
+let drag = null;
+let idCounter = 1;
+const uid = () => idCounter++;
+
+let pdfDoc = null, pageNum = 1, pageTotal = 1;
+let dims = { w: 1000, h: 700 };
+let svg = null, bgImageHref = null;
+
+// ── Build sidebar ───────────────────────────────────────────────────────
+function buildSidebar() {
+  const tl = document.getElementById("toolList");
+  tl.innerHTML = "";
+  for (const [groupName, keys] of TOOL_GROUPS) {
+    const hdr = document.createElement("div");
+    hdr.className = "tool-group-label";
+    hdr.textContent = groupName;
+    tl.appendChild(hdr);
+    for (const key of keys) {
+      const t = TOOLS[key];
+      const btn = document.createElement("button");
+      btn.className = "tool-item" + (tool === key ? " active" : "");
+      btn.onclick = () => setTool(key);
+      const swatch = PALETTE[key]
+        ? `<span class="tool-swatch" style="background:${PALETTE[key]}"></span>`
+        : `<span class="tool-icon">${t.icon}</span>`;
+      btn.innerHTML = `${swatch}<span>${t.label}</span>`;
+      tl.appendChild(btn);
+    }
+  }
+  const lg = document.getElementById("legend");
+  lg.innerHTML = LEGEND.map(([l,k]) =>
+    `<div class="legend-item"><span class="legend-swatch" style="background:${PALETTE[k]}"></span>${l}</div>`).join("");
+}
+
+function setTool(t) {
+  finishRoad();
+  tool = t;
+  selectedId = null;
+  document.getElementById("hintText").textContent = TOOLS[t].hint;
+  buildSidebar();
+  render();
+}
+
+// ── PDF loading (auto from ortho.pdf) ───────────────────────────────────
+async function loadOrtho() {
+  try {
+    const loadingTask = pdfjsLib.getDocument("ortho.pdf");
+    pdfDoc = await loadingTask.promise;
+    pageTotal = pdfDoc.numPages;
+    await renderPage(1);
+    document.getElementById("hintText").textContent = TOOLS[tool].hint;
+  } catch (e) {
+    showIdle();
+  }
+}
+
+async function renderPage(n) {
+  pageNum = n;
+  const page = await pdfDoc.getPage(n);
+  const base = page.getViewport({ scale: 1 });
+  const scale = 1400 / base.width;
+  const vp = page.getViewport({ scale });
+  const canvas = document.createElement("canvas");
+  canvas.width = vp.width; canvas.height = vp.height;
+  await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+  bgImageHref = canvas.toDataURL("image/png");
+  dims = { w: vp.width, h: vp.height };
+  buildStage();
+  updatePageNav();
+}
+
+function changePage(d) {
+  const next = pageNum + d;
+  if (next < 1 || next > pageTotal) return;
+  items = []; draft = null; selectedId = null;
+  renderPage(next);
+}
+
+function updatePageNav() {
+  const wrap = document.getElementById("pageNavWrap");
+  if (pageTotal > 1) {
+    wrap.style.display = "block";
+    document.getElementById("pgCur").textContent = pageNum;
+    document.getElementById("pgTot").textContent = pageTotal;
+    document.getElementById("pgPrev").disabled = pageNum <= 1;
+    document.getElementById("pgNext").disabled = pageNum >= pageTotal;
+  } else wrap.style.display = "none";
+}
+
+function showIdle() {
+  document.getElementById("stage").innerHTML =
+    `<div class="idle">
+      <div class="idle-icon">📄</div>
+      <div class="idle-title">No site plan loaded</div>
+      <div class="idle-sub">Looking for <span class="idle-code">ortho.pdf</span> in this folder. If it didn't load (common when opening the file directly without a web server), load a PDF manually below.</div>
+      <button class="btn-load-idle" onclick="document.getElementById('pdfUpload').click()">📂 Load PDF</button>
+    </div>`;
+  document.getElementById("hintText").textContent = "Load a site plan PDF to begin.";
+}
+
+// ── Manual upload fallback ──────────────────────────────────────────────
+async function loadFromFile(file) {
+  if (!file) return;
+  if (file.type !== "application/pdf") { showToast("Please choose a PDF file."); return; }
+  try {
+    const buf = await file.arrayBuffer();
+    pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+    pageTotal = pdfDoc.numPages;
+    items = []; draft = null; selectedId = null;
+    await renderPage(1);
+    document.getElementById("hintText").textContent = TOOLS[tool].hint;
+    showToast("✓ Plan loaded");
+  } catch (e) {
+    showToast("Could not read that PDF.");
+  }
+}
+
+// ── Stage / SVG ─────────────────────────────────────────────────────────
+function buildStage() {
+  const stage = document.getElementById("stage");
+  stage.innerHTML = `<div class="canvas-wrap"><svg id="svg" viewBox="0 0 ${dims.w} ${dims.h}"></svg></div>`;
+  svg = document.getElementById("svg");
+  svg.addEventListener("mousedown", onDown);
+  svg.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+  svg.addEventListener("dblclick", finishRoad);
+  svg.addEventListener("touchstart", onDown, {passive:false});
+  svg.addEventListener("touchmove", onMove, {passive:false});
+  window.addEventListener("touchend", onUp);
+  render();
+}
+
+function el(tag, attrs) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+function toPoint(evt) {
+  const pt = svg.createSVGPoint();
+  const src = evt.touches ? evt.touches[0] : evt;
+  pt.x = src.clientX; pt.y = src.clientY;
+  const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+  return { x: p.x, y: p.y };
+}
+
+// ── Render ──────────────────────────────────────────────────────────────
+function render() {
+  if (!svg) return;
+  svg.style.cursor = tool === "select" ? "default" : "crosshair";
+  svg.innerHTML = "";
+  if (bgImageHref) svg.appendChild(el("image", { href: bgImageHref, x:0, y:0, width:dims.w, height:dims.h }));
+  items.forEach(m => drawShape(m, false));
+  if (draft) drawShape(draft, true);
+}
+
+function drawShape(m, isDraft) {
+  const selected = !isDraft && m.id === selectedId;
+  const stroke = PALETTE[m.type] || "#333";
+  const g = el("g", {});
+  if (!isDraft) {
+    g.style.cursor = tool === "select" ? "move" : tool === "erase" ? "not-allowed" : "default";
+    g.addEventListener("mousedown", (e) => itemDown(e, m));
+    g.addEventListener("touchstart", (e) => itemDown(e, m), {passive:false});
+  }
+
+  // ── ACCESS ROAD ──
+  if (m.type === "access") {
+    const pts = (isDraft && m.preview) ? [...m.points, m.preview] : m.points;
+    const d = pts.map((p,i) => `${i?"L":"M"}${p.x},${p.y}`).join(" ");
+    g.appendChild(el("path", { d, fill:"none", stroke:"#0f172a", "stroke-width":15, "stroke-linecap":"round", "stroke-linejoin":"round", opacity: isDraft?0.4:0.85 }));
+    g.appendChild(el("path", { d, fill:"none", stroke, "stroke-width":10, "stroke-linecap":"round", "stroke-linejoin":"round" }));
+    g.appendChild(el("path", { d, fill:"none", stroke:"#fff", "stroke-width":1.5, "stroke-dasharray":"10 12", opacity:0.9 }));
+    if (selected || isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
+  }
+  // ── FENCING / HOARDING ──
+  else if (m.type === "fence") {
+    const pts = (isDraft && m.preview) ? [...m.points, m.preview] : m.points;
+    const d = pts.map((p,i) => `${i?"L":"M"}${p.x},${p.y}`).join(" ");
+    g.appendChild(el("path", { d, fill:"none", stroke, "stroke-width":3, "stroke-linecap":"round", "stroke-linejoin":"round" }));
+    g.appendChild(el("path", { d, fill:"none", stroke, "stroke-width":9, "stroke-linecap":"butt", "stroke-dasharray":"1 11", opacity:0.85 }));
+    if (selected || isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
+  }
+  // ── FREE DRAW ──
+  else if (m.type === "draw") {
+    const d = m.points.map((p,i) => `${i?"L":"M"}${p.x},${p.y}`).join(" ");
+    g.appendChild(el("path", { d, fill:"none", stroke:PALETTE.draw, "stroke-width":3, "stroke-linecap":"round", "stroke-linejoin":"round" }));
+  }
+  // ── POLYGON ZONES (building, tpz) ──
+  else if (POLY_TOOLS.includes(m.type)) {
+    drawPolyZone(g, m, isDraft, selected, stroke);
+  }
+  // ── RECT ZONES (storage, laydown, exclusion, parking) ──
+  else if (RECT_TOOLS.includes(m.type)) {
+    drawRectZone(g, m, isDraft, selected, stroke);
+  }
+  // ── POINT MARKERS (vehicle, bin, assembly) ──
+  else if (m.type === "vehicle") {
+    g.setAttribute("transform", `translate(${m.x},${m.y})`);
+    g.appendChild(el("rect", { x:-26, y:-16, width:52, height:32, rx:4, fill:PALETTE.vehicle, stroke:"#fff", "stroke-width":2 }));
+    g.appendChild(el("rect", { x:-26, y:-16, width:18, height:32, rx:4, fill:"#1e40af" }));
+    g.appendChild(el("circle", { cx:-14, cy:18, r:6, fill:"#0f172a" }));
+    g.appendChild(el("circle", { cx:12, cy:18, r:6, fill:"#0f172a" }));
+    if (selected) g.appendChild(el("circle", { r:40, fill:"none", stroke:PALETTE.vehicle, "stroke-width":1.5, "stroke-dasharray":"4 4", "data-chrome":1 }));
+  }
+  else if (m.type === "bin") {
+    g.setAttribute("transform", `translate(${m.x},${m.y})`);
+    g.appendChild(el("path", { d:"M -18 -8 L 22 -8 L 16 16 L -12 16 Z", fill:PALETTE.bin, stroke:"#fff", "stroke-width":2 }));
+    g.appendChild(el("rect", { x:-20, y:-13, width:44, height:6, rx:2, fill:PALETTE.bin }));
+    g.appendChild(el("line", { x1:-6, y1:-4, x2:-9, y2:13, stroke:"#fff", "stroke-width":1.5, opacity:0.6 }));
+    g.appendChild(el("line", { x1:4, y1:-4, x2:3, y2:13, stroke:"#fff", "stroke-width":1.5, opacity:0.6 }));
+    g.appendChild(el("line", { x1:14, y1:-4, x2:13, y2:13, stroke:"#fff", "stroke-width":1.5, opacity:0.6 }));
+    if (selected) g.appendChild(el("circle", { r:34, fill:"none", stroke:PALETTE.bin, "stroke-width":1.5, "stroke-dasharray":"4 4", "data-chrome":1 }));
+  }
+  else if (m.type === "assembly") {
+    g.setAttribute("transform", `translate(${m.x},${m.y})`);
+    g.appendChild(el("rect", { x:-20, y:-20, width:40, height:40, rx:5, fill:PALETTE.assembly, stroke:"#fff", "stroke-width":2.5 }));
+    // running-person glyph
+    g.appendChild(el("circle", { cx:2, cy:-9, r:3.5, fill:"#fff" }));
+    g.appendChild(el("path", { d:"M 2 -6 L 0 2 L -6 8 M 0 2 L 6 6 M 0 -3 L -7 -2 M 0 -3 L 8 -5 L 11 -1 M 0 2 L 2 12 L 8 16 M 0 2 L -3 11 L -9 13",
+      fill:"none", stroke:"#fff", "stroke-width":2.2, "stroke-linecap":"round", "stroke-linejoin":"round" }));
+    const t = el("text", { x:0, y:33, "font-size":11, "font-weight":700, fill:PALETTE.assembly, "font-family":"Arial", "text-anchor":"middle" }); t.textContent = "ASSEMBLY"; g.appendChild(t);
+    if (selected) g.appendChild(el("circle", { r:36, fill:"none", stroke:PALETTE.assembly, "stroke-width":1.5, "stroke-dasharray":"4 4", "data-chrome":1 }));
+  }
+  // ── CRANE ──
+  else if (m.type === "crane") {
+    g.appendChild(el("circle", { cx:m.x, cy:m.y, r:m.r, fill:PALETTE.crane, "fill-opacity":0.09, stroke:PALETTE.crane, "stroke-width":2, "stroke-dasharray":"8 6" }));
+    g.appendChild(el("line", { x1:m.x, y1:m.y, x2:m.x+m.r, y2:m.y, stroke:PALETTE.crane, "stroke-width":1.5, opacity:0.5, "stroke-dasharray":"4 4" }));
+    const crane = el("g", { transform:`translate(${m.x},${m.y})` });
+    crane.appendChild(el("rect", { x:-7, y:6, width:14, height:6, rx:1, fill:PALETTE.crane }));
+    crane.appendChild(el("rect", { x:-3, y:-18, width:6, height:26, fill:PALETTE.crane }));
+    crane.appendChild(el("line", { x1:-3, y1:-12, x2:3, y2:-6, stroke:"#fff", "stroke-width":1, opacity:0.7 }));
+    crane.appendChild(el("line", { x1:3, y1:-12, x2:-3, y2:-6, stroke:"#fff", "stroke-width":1, opacity:0.7 }));
+    crane.appendChild(el("line", { x1:-3, y1:0, x2:3, y2:6, stroke:"#fff", "stroke-width":1, opacity:0.7 }));
+    crane.appendChild(el("line", { x1:3, y1:0, x2:-3, y2:6, stroke:"#fff", "stroke-width":1, opacity:0.7 }));
+    crane.appendChild(el("rect", { x:-12, y:-22, width:34, height:4, fill:PALETTE.crane }));
+    crane.appendChild(el("rect", { x:-15, y:-23, width:5, height:7, rx:1, fill:PALETTE.crane }));
+    crane.appendChild(el("path", { d:"M -3 -18 L 0 -27 L 3 -18 Z", fill:PALETTE.crane }));
+    crane.appendChild(el("line", { x1:18, y1:-20, x2:18, y2:-9, stroke:PALETTE.crane, "stroke-width":1.5 }));
+    crane.appendChild(el("path", { d:"M 18 -9 q 2 3 -1 3", fill:"none", stroke:PALETTE.crane, "stroke-width":1.5 }));
+    g.appendChild(crane);
+    const t = el("text", { x:m.x+14, y:m.y+18, "font-size":13, "font-weight":700, fill:PALETTE.crane, "font-family":"Arial" }); t.textContent = m.label; g.appendChild(t);
+    if (selected) {
+      const h = el("circle", { cx:m.x+m.r, cy:m.y, r:8, fill:"#fff", stroke:PALETTE.crane, "stroke-width":2.5, "data-chrome":1 });
+      h.style.cursor = "ew-resize";
+      h.addEventListener("mousedown", (e) => { e.stopPropagation(); selectedId = m.id; drag = { mode:"resize-crane" }; });
+      g.appendChild(h);
+    }
+  }
+  svg.appendChild(g);
+}
+
+// Distinct rectangle-zone rendering per type
+function drawRectZone(g, m, isDraft, selected, stroke) {
+  const type = m.type;
+  if (type === "exclusion") {
+    g.appendChild(el("rect", { x:m.x, y:m.y, width:m.w, height:m.h, fill:stroke, "fill-opacity":0.12, stroke, "stroke-width":3 }));
+    const clipId = "clip"+m.id;
+    const defs = el("defs", {});
+    const cp = el("clipPath", { id:clipId });
+    cp.appendChild(el("rect", { x:m.x, y:m.y, width:m.w, height:m.h }));
+    defs.appendChild(cp); g.appendChild(defs);
+    const stripes = el("g", { "clip-path":`url(#${clipId})` });
+    for (let i = -m.h; i < m.w; i += 14) {
+      stripes.appendChild(el("line", { x1:m.x+i, y1:m.y, x2:m.x+i+m.h, y2:m.y+m.h, stroke, "stroke-width":3, opacity:0.25 }));
+    }
+    g.appendChild(stripes);
+  } else if (type === "parking") {
+    g.appendChild(el("rect", { x:m.x, y:m.y, width:m.w, height:m.h, fill:stroke, "fill-opacity":0.12, stroke, "stroke-width":2.5, rx:3 }));
+    if (m.w > 30) for (let x = m.x + 18; x < m.x + m.w - 4; x += 18)
+      g.appendChild(el("line", { x1:x, y1:m.y+4, x2:x, y2:m.y+m.h-4, stroke, "stroke-width":1.5, opacity:0.4 }));
+  } else if (type === "storage") {
+    g.appendChild(el("rect", { x:m.x, y:m.y, width:m.w, height:m.h, fill:stroke, "fill-opacity":0.14, stroke, "stroke-width":2.5 }));
+  } else if (type === "toilet" || type === "rest" || type === "lunch") {
+    // welfare amenities: solid rounded block with a small icon badge top-left
+    g.appendChild(el("rect", { x:m.x, y:m.y, width:m.w, height:m.h, fill:stroke, "fill-opacity":0.20, stroke, "stroke-width":2.5, rx:6 }));
+    const icon = type === "toilet" ? "🚻" : type === "rest" ? "🛋️" : "🍴";
+    if (m.w > 26 && m.h > 22) {
+      const badge = el("text", { x:m.x+6, y:m.y+7, "font-size":15, "font-family":"Arial", "dominant-baseline":"hanging" });
+      badge.textContent = icon; g.appendChild(badge);
+    }
+  } else { // laydown
+    g.appendChild(el("rect", { x:m.x, y:m.y, width:m.w, height:m.h, fill:stroke, "fill-opacity":0.18, stroke, "stroke-width":2.5, "stroke-dasharray":"10 6" }));
+  }
+  if (!isDraft) centeredLabel(g, m.label, m.x + m.w/2, m.y + m.h/2, stroke);
+  if (selected) g.appendChild(el("rect", { x:m.x, y:m.y, width:m.w, height:m.h, fill:"none", stroke:"#000", "stroke-width":1, "stroke-dasharray":"4 4", "data-chrome":1 }));
+}
+
+// Polygon zones (building, tpz)
+function drawPolyZone(g, m, isDraft, selected, stroke) {
+  const pts = (isDraft && m.preview) ? [...m.points, m.preview] : m.points;
+  const ptsStr = pts.map(p => `${p.x},${p.y}`).join(" ");
+  if (m.type === "building") {
+    g.appendChild(el("polygon", { points:ptsStr, fill:stroke, "fill-opacity":0.22, stroke, "stroke-width":3, "stroke-linejoin":"round", opacity:isDraft?0.7:1 }));
+  } else { // tpz
+    g.appendChild(el("polygon", { points:ptsStr, fill:stroke, "fill-opacity":0.14, stroke, "stroke-width":2.5, "stroke-dasharray":"6 5", "stroke-linejoin":"round", opacity:isDraft?0.7:1 }));
+  }
+  if (selected || isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
+  if (!isDraft && m.points.length >= 3) {
+    const c = centroid(m.points);
+    centeredLabel(g, m.label, c.x, c.y, stroke);
+  }
+}
+
+// Centroid of a polygon (area-weighted, falls back to average)
+function centroid(pts) {
+  let a = 0, cx = 0, cy = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const p1 = pts[i], p2 = pts[(i+1) % pts.length];
+    const f = p1.x * p2.y - p2.x * p1.y;
+    a += f; cx += (p1.x + p2.x) * f; cy += (p1.y + p2.y) * f;
+  }
+  if (Math.abs(a) < 1e-6) {
+    const avg = pts.reduce((s,p) => ({x:s.x+p.x, y:s.y+p.y}), {x:0,y:0});
+    return { x: avg.x/pts.length, y: avg.y/pts.length };
+  }
+  a *= 0.5;
+  return { x: cx/(6*a), y: cy/(6*a) };
+}
+
+// Centered label with a subtle white halo for legibility
+function centeredLabel(g, text, x, y, fill) {
+  const halo = el("text", { x, y, "font-size":15, "font-weight":700, fill:"#fff", "font-family":"Arial",
+    "text-anchor":"middle", "dominant-baseline":"central", stroke:"#fff", "stroke-width":4, "stroke-linejoin":"round", opacity:0.85 });
+  halo.textContent = text; g.appendChild(halo);
+  const t = el("text", { x, y, "font-size":15, "font-weight":700, fill, "font-family":"Arial",
+    "text-anchor":"middle", "dominant-baseline":"central" });
+  t.textContent = text; g.appendChild(t);
+}
+
+// ── Interaction ─────────────────────────────────────────────────────────
+function onDown(evt) {
+  if (!bgImageHref) return;
+  if (evt.touches) evt.preventDefault();
+  if (tool === "select" || tool === "erase") return;
+  const p = toPoint(evt);
+
+  if (POINT_TOOLS.includes(tool)) {
+    const label = tool === "vehicle" ? "Truck" : tool === "bin" ? "Skip" : "Assembly";
+    items.push({ id:uid(), type:tool, x:p.x, y:p.y, label }); render(); return;
+  }
+  if (tool === "crane") {
+    drag = { mode:"crane-place" };
+    draft = { id:uid(), type:"crane", x:p.x, y:p.y, r:30, label:"Crane" };
+    render(); return;
+  }
+  if (LINE_TOOLS.includes(tool) || POLY_TOOLS.includes(tool)) {
+    if (!draft || draft.type !== tool) draft = { id:uid(), type:tool, points:[p], preview:p, label: RECT_LABEL[tool] };
+    else { draft.points.push(p); draft.preview = p; }
+    render(); return;
+  }
+  if (RECT_TOOLS.includes(tool)) {
+    drag = { mode:"rect-draw", start:p };
+    draft = { id:uid(), type:tool, x:p.x, y:p.y, w:0, h:0, label: RECT_LABEL[tool] };
+    render(); return;
+  }
+  if (tool === "draw") { drag = { mode:"free-draw" }; draft = { id:uid(), type:"draw", points:[p] }; render(); return; }
+}
+
+function onMove(evt) {
+  if (evt.touches && (drag || ((LINE_TOOLS.includes(tool)||POLY_TOOLS.includes(tool)) && draft))) evt.preventDefault();
+  const p = toPoint(evt);
+  if (drag?.mode === "rect-draw" && draft) {
+    const s = drag.start;
+    draft.x = Math.min(s.x,p.x); draft.y = Math.min(s.y,p.y);
+    draft.w = Math.abs(p.x-s.x); draft.h = Math.abs(p.y-s.y);
+    render(); return;
+  }
+  if (drag?.mode === "free-draw" && draft) { draft.points.push(p); render(); return; }
+  if (drag?.mode === "crane-place" && draft) {
+    draft.r = Math.max(30, Math.hypot(p.x - draft.x, p.y - draft.y));
+    render(); return;
+  }
+  if (drag?.mode === "move" && selectedId != null) {
+    const dx = p.x - drag.last.x, dy = p.y - drag.last.y; drag.last = p;
+    const m = items.find(i => i.id === selectedId); if (m) moveItem(m, dx, dy);
+    render(); return;
+  }
+  if (drag?.mode === "resize-crane" && selectedId != null) {
+    const m = items.find(i => i.id === selectedId);
+    if (m && m.type === "crane") { m.r = Math.max(20, Math.hypot(p.x-m.x, p.y-m.y)); render(); }
+    return;
+  }
+  if ((LINE_TOOLS.includes(tool)||POLY_TOOLS.includes(tool)) && draft) { draft.preview = p; render(); }
+}
+
+function onUp() {
+  if (drag?.mode === "rect-draw" && draft) {
+    if (draft.w > 6 && draft.h > 6) { delete draft.preview; items.push(draft); }
+    draft = null; drag = null; render(); return;
+  }
+  if (drag?.mode === "crane-place" && draft) {
+    items.push(draft); draft = null; drag = null; render(); return;
+  }
+  if (drag?.mode === "free-draw" && draft) {
+    if (draft.points.length > 1) items.push(draft);
+    draft = null; drag = null; render(); return;
+  }
+  drag = null;
+}
+
+function finishRoad() {
+  if (!draft) return;
+  const isLine = LINE_TOOLS.includes(draft.type);
+  const isPoly = POLY_TOOLS.includes(draft.type);
+  if (isLine && draft.points.length >= 2) {
+    items.push({ id:draft.id, type:draft.type, points:draft.points });
+  } else if (isPoly && draft.points.length >= 3) {
+    items.push({ id:draft.id, type:draft.type, points:draft.points, label:draft.label });
+  }
+  if (isLine || isPoly) { draft = null; render(); }
+}
+
+function moveItem(m, dx, dy) {
+  if (m.points) m.points = m.points.map(pt => ({x:pt.x+dx, y:pt.y+dy}));
+  else { m.x += dx; m.y += dy; }
+}
+
+function itemDown(evt, m) {
+  if (tool === "erase") { evt.stopPropagation(); items = items.filter(i => i.id !== m.id); render(); return; }
+  if (tool === "select") { evt.stopPropagation(); selectedId = m.id; drag = { mode:"move", last:toPoint(evt) }; render(); }
+}
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "Enter") finishRoad();
+  if (e.key === "Escape") { selectedId = null; render(); }
+  if ((e.key === "Delete" || e.key === "Backspace") && selectedId != null) {
+    items = items.filter(i => i.id !== selectedId); selectedId = null; render();
+  }
+});
+
+function undo() { draft = null; items.pop(); render(); }
+function clearAll() { items = []; selectedId = null; draft = null; render(); }
+
+// ── Export PNG ──────────────────────────────────────────────────────────
+function exportPng() {
+  if (!bgImageHref) { showToast("No plan loaded."); return; }
+  const name = (window.prompt("Enter your name for the plan:", "") || "").trim();
+
+  const FOOTER = 70;                 // bottom band height
+  const W = dims.w, H = dims.h;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H + FOOTER;
+  const ctx = canvas.getContext("2d");
+
+  // white base (so footer band is clean)
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const bg = new Image();
+  bg.onload = () => {
+    ctx.drawImage(bg, 0, 0, W, H);
+
+    const clone = svg.cloneNode(true);
+    clone.querySelectorAll("[data-chrome]").forEach(n => n.remove());
+    const xml = new XMLSerializer().serializeToString(clone);
+    const overlay = new Image();
+    overlay.onload = () => {
+      ctx.drawImage(overlay, 0, 0, W, H);
+      drawLegendBox(ctx);
+      drawFooter(ctx, W, H, FOOTER, name);
+      // try to composite the logo (top-right), then finish
+      compositeLogo(ctx, W, () => {
+        try {
+          const a = document.createElement("a");
+          a.download = "site-logistics-plan.png";
+          a.href = canvas.toDataURL("image/png");
+          a.click();
+          showToast("✓ Exported site-logistics-plan.png");
+        } catch (err) {
+          showToast("Export blocked locally — works once hosted online.");
+        }
+      });
+    };
+    overlay.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
+  };
+  bg.src = bgImageHref;
+}
+
+function usedTypes() {
+  const present = new Set(items.map(i => i.type));
+  return LEGEND.filter(([, k]) => present.has(k));
+}
+
+function drawLegendBox(ctx) {
+  const entries = usedTypes();
+  if (!entries.length) return;
+  const pad = 14, rowH = 24, swatch = 14;
+  const titleH = 26;
+  const boxW = 210;
+  const boxH = titleH + pad + entries.length * rowH + pad - 6;
+  const x = 18, y = 18;
+
+  ctx.save();
+  // panel
+  ctx.fillStyle = "rgba(255,255,255,0.94)";
+  ctx.strokeStyle = "#0a1f4e";
+  ctx.lineWidth = 2;
+  roundRect(ctx, x, y, boxW, boxH, 8);
+  ctx.fill(); ctx.stroke();
+  // title bar
+  ctx.fillStyle = "#0a1f4e";
+  roundRectTop(ctx, x, y, boxW, titleH, 8);
+  ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 13px Arial";
+  ctx.textBaseline = "middle";
+  ctx.fillText("SITE LEGEND", x + pad, y + titleH/2 + 1);
+
+  let ry = y + titleH + pad - 2;
+  ctx.font = "600 12.5px Arial";
+  for (const [label, key] of entries) {
+    ctx.fillStyle = PALETTE[key];
+    roundRect(ctx, x + pad, ry, swatch, swatch, 3);
+    ctx.fill();
+    ctx.strokeStyle = "#0a1f4e"; ctx.lineWidth = 1;
+    roundRect(ctx, x + pad, ry, swatch, swatch, 3); ctx.stroke();
+    ctx.fillStyle = "#0f172a";
+    ctx.fillText(label, x + pad + swatch + 9, ry + swatch/2);
+    ry += rowH;
+  }
+  ctx.restore();
+}
+
+function drawFooter(ctx, W, H, FOOTER, name) {
+  ctx.save();
+  // band
+  ctx.fillStyle = "#0a1f4e";
+  ctx.fillRect(0, H, W, FOOTER);
+  ctx.fillStyle = "#f59e0b";
+  ctx.fillRect(0, H, W, 4);
+  // message
+  const msg = name
+    ? `Great job, ${name}! You'll absolutely thrive in the construction industry. 🏗️`
+    : "Great job! You'll absolutely thrive in the construction industry. 🏗️";
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 20px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(msg, W/2, H + FOOTER/2 + 2);
+  // small caption left
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#7da0d8";
+  ctx.font = "11px Arial";
+  ctx.fillText("Site Logistics Plan", 18, H + FOOTER/2 + 2);
+  ctx.restore();
+}
+
+function compositeLogo(ctx, W, done) {
+  const logo = new Image();
+  logo.crossOrigin = "anonymous";
+  logo.onload = () => {
+    const maxH = 46, maxW = 180;
+    let lw = logo.width, lh = logo.height;
+    const scale = Math.min(maxW/lw, maxH/lh);
+    lw *= scale; lh *= scale;
+    const lx = W - lw - 18, ly = 20;
+    ctx.save();
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(logo, lx, ly, lw, lh);
+    ctx.restore();
+    done();
+  };
+  logo.onerror = () => done();   // no logo present → skip silently
+  logo.src = "logo.png";
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+function roundRectTop(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.lineTo(x+w, y+h);
+  ctx.lineTo(x, y+h);
+  ctx.lineTo(x, y+r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.style.opacity = "1";
+  clearTimeout(t._timer); t._timer = setTimeout(() => t.style.opacity = "0", 2600);
+}
+
+// ── Start screen ────────────────────────────────────────────────────────
+function startGame() {
+  const w = document.getElementById("welcome");
+  w.classList.add("hide");
+  setTimeout(() => { w.style.display = "none"; }, 500);
+}
+
+// ── Init ────────────────────────────────────────────────────────────────
+buildSidebar();
+loadOrtho();
+</script>
+</body>
+</html>
