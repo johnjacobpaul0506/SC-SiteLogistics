@@ -222,7 +222,7 @@ const TOOLS = {
   recycle:   { label: "Recycling",      icon: "♻️", hint: "Click to place a recycling collection point." },
   organic:   { label: "Green / Organic",icon: "🌿", hint: "Click to place a green waste / organics point." },
   assembly:  { label: "Assembly Point", icon: "🚶", hint: "Click a corner, move to size, then double-click or press Esc to finish." },
-  camera:    { label: "Security Camera",icon: "📹", hint: "Click to place a security camera (CCTV) point." },
+  camera:    { label: "Security Camera",icon: "📹", hint: "Click to place a 360° security camera (CCTV) with full coverage." },
   text:      { label: "Text Note",      icon: "🔤", hint: "Click where you want the text, then type your message and press Enter." },
   draw:      { label: "Free Draw",      icon: "✏️", hint: "Click and drag to sketch freely." },
   erase:     { label: "Delete",         icon: "🧽", hint: "Click an item to remove it." },
@@ -581,21 +581,22 @@ function drawShape(m, isDraft) {
     });
     if (selected) g.appendChild(el("rect", { x:m.x-3, y:m.y-3, width:boxW+6, height:boxH+6, fill:"none", stroke:"#000", "stroke-width":1, "stroke-dasharray":"4 4", "data-chrome":1 }));
   }
-  // ── SECURITY CAMERA ──
+  // ── SECURITY CAMERA (360°) ──
   else if (m.type === "camera") {
     g.setAttribute("transform", `translate(${m.x},${m.y})`);
-    // field-of-view wedge
-    g.appendChild(el("path", { d:"M 0 0 L 38 -16 L 38 16 Z", fill:stroke, "fill-opacity":0.15, stroke, "stroke-width":1, "stroke-dasharray":"3 3" }));
-    // camera body
-    g.appendChild(el("rect", { x:-14, y:-8, width:22, height:14, rx:2, fill:stroke, stroke:"#fff", "stroke-width":1.5 }));
+    // 360° coverage circle
+    g.appendChild(el("circle", { cx:0, cy:0, r:34, fill:stroke, "fill-opacity":0.12, stroke, "stroke-width":1.5, "stroke-dasharray":"4 4" }));
+    // dome camera body
+    g.appendChild(el("circle", { cx:0, cy:0, r:11, fill:stroke, stroke:"#fff", "stroke-width":2 }));
     // lens
-    g.appendChild(el("circle", { cx:9, cy:0, r:5, fill:"#fff" }));
-    g.appendChild(el("circle", { cx:9, cy:0, r:2.5, fill:stroke }));
-    // mount arm
-    g.appendChild(el("rect", { x:-20, y:-3, width:7, height:6, rx:1, fill:stroke }));
-    const t = el("text", { x:-3, y:16, "font-size":11, "font-weight":700, fill:stroke, "font-family":"Arial", "text-anchor":"middle" });
-    t.textContent = "CCTV"; g.appendChild(t);
-    if (selected) g.appendChild(el("circle", { r:30, fill:"none", stroke, "stroke-width":1.5, "stroke-dasharray":"4 4", "data-chrome":1 }));
+    g.appendChild(el("circle", { cx:0, cy:0, r:5, fill:"#fff" }));
+    g.appendChild(el("circle", { cx:0, cy:0, r:2.5, fill:stroke }));
+    // small 360 sweep arrows around the dome
+    g.appendChild(el("path", { d:"M 0 -16 A 16 16 0 0 1 14 8", fill:"none", stroke, "stroke-width":1.5 }));
+    g.appendChild(el("path", { d:"M 0 16 A 16 16 0 0 1 -14 -8", fill:"none", stroke, "stroke-width":1.5 }));
+    const t = el("text", { x:0, y:46, "font-size":11, "font-weight":700, fill:stroke, "font-family":"Arial", "text-anchor":"middle" });
+    t.textContent = "360° CCTV"; g.appendChild(t);
+    if (selected) g.appendChild(el("circle", { r:40, fill:"none", stroke, "stroke-width":1.5, "stroke-dasharray":"4 4", "data-chrome":1 }));
   }
   // ── CRANE ──
   else if (m.type === "crane") {
@@ -901,32 +902,6 @@ function exportPng() {
   bg.src = bgImageHref;
 }
 
-// Draw a small gender-neutral hard-hat smiley as vector graphics (cx,cy center; r face radius)
-function drawHardHatSmiley(doc, cx, cy, r) {
-  // face
-  doc.setFillColor(252, 211, 77);          // warm yellow
-  doc.setDrawColor(120, 90, 10); doc.setLineWidth(0.3);
-  doc.circle(cx, cy + 0.4, r, "FD");
-  // eyes
-  doc.setFillColor(40, 30, 10);
-  doc.circle(cx - r*0.38, cy + 0.2, r*0.13, "F");
-  doc.circle(cx + r*0.38, cy + 0.2, r*0.13, "F");
-  // smile — two short strokes forming a gentle curve
-  doc.setDrawColor(40, 30, 10); doc.setLineWidth(0.35);
-  doc.line(cx - r*0.34, cy + r*0.45, cx, cy + r*0.62);
-  doc.line(cx, cy + r*0.62, cx + r*0.34, cy + r*0.45);
-  // hard hat — dome + brim, in safety orange
-  doc.setFillColor(234, 88, 12);
-  doc.setDrawColor(150, 50, 5); doc.setLineWidth(0.3);
-  // brim
-  doc.roundedRect(cx - r*1.25, cy - r*0.55, r*2.5, r*0.34, r*0.15, r*0.15, "FD");
-  // dome (half circle approximated by a filled circle clipped above brim — use small ellipse)
-  doc.ellipse(cx, cy - r*0.5, r*0.85, r*0.6, "FD");
-  // hat ridge
-  doc.setDrawColor(150, 50, 5); doc.setLineWidth(0.25);
-  doc.line(cx, cy - r*1.05, cx, cy - r*0.5);
-}
-
 function loadImg(src, cb) {
   const img = new Image();
   img.crossOrigin = "anonymous";
@@ -954,7 +929,7 @@ function buildPdf(planCanvas, name, logo1, logo2) {
   doc.setLineWidth(0.3);
   doc.rect(dx, dy, dw, dh);
 
-  // bottom appreciation message — fancy italic text with a hard-hat smiley
+  // bottom appreciation message — fancy italic text only
   const ribH = 12;
   const ribY = dy + dh - ribH;
   doc.setTextColor(navyR, navyG, navyB);
@@ -962,12 +937,7 @@ function buildPdf(planCanvas, name, logo1, logo2) {
   const msg = name
     ? "Great job, " + name + "! You will absolutely thrive in the construction industry."
     : "Great job! You will absolutely thrive in the construction industry.";
-  const msgW = doc.getTextWidth(msg);
-  const cy2 = ribY + ribH/2 + 1;
-  // smiley sits just left of the centred text
-  const faceX = dx + dw/2 - msgW/2 - 7;
-  drawHardHatSmiley(doc, faceX, cy2, 3.4);
-  doc.text(msg, dx + dw/2 + 4, ribY + ribH/2 + 2, { align: "center" });
+  doc.text(msg, dx + dw/2, ribY + ribH/2 + 2, { align: "center" });
 
   // fit plan image preserving aspect ratio, above the ribbon
   const planTop = dy + 2;
