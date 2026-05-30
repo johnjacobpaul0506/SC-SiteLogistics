@@ -37,6 +37,8 @@ body { font-family: Arial, sans-serif; background: #001B49; color: #f9fafb; min-
 .tool-item:hover { background: rgba(59,130,246,0.07); color: #f9fafb; }
 .tool-item.active { background: rgba(59,130,246,0.12); border-left-color: #3b82f6; color: #93c5fd; }
 .tool-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.25); }
+.tool-swatch-none { background: transparent; border-color: transparent; }
+.tool-emoji { width: 18px; text-align: center; font-size: 14px; flex-shrink: 0; }
 .tool-icon { width: 18px; text-align: center; font-size: 15px; flex-shrink: 0; }
 
 .s-divider { border: none; border-top: 1px solid #1e3a6e; margin: 8px 0; }
@@ -83,7 +85,7 @@ body { font-family: Arial, sans-serif; background: #001B49; color: #f9fafb; min-
 .welcome-bg::before { content: ""; position: absolute; inset: 0;
   background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
   background-size: 44px 44px; mask-image: radial-gradient(circle at 50% 45%, #000 30%, transparent 78%); }
-.welcome-toplogo { position: absolute; top: 26px; right: 30px; max-height: 56px; max-width: 200px; object-fit: contain; z-index: 2; }
+.welcome-toplogo { position: absolute; top: 26px; right: 30px; max-height: 112px; max-width: 400px; object-fit: contain; z-index: 2; }
 .welcome-card { position: relative; max-width: 820px; width: 100%; background: rgba(10,31,78,0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(123,160,216,0.35); border-radius: 22px; padding: 44px 52px 40px; box-shadow: 0 24px 70px rgba(0,0,0,0.55); text-align: center; animation: rise 0.6s cubic-bezier(.2,.8,.2,1); }
 @keyframes rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
@@ -111,7 +113,7 @@ body { font-family: Arial, sans-serif; background: #001B49; color: #f9fafb; min-
 <!-- ═══ WELCOME / START SCREEN ═══ -->
 <div class="welcome" id="welcome">
   <div class="welcome-bg"></div>
-  <img src="logo.png" class="welcome-toplogo" alt="" onerror="this.style.display='none'">
+  <img src="logo1.png" class="welcome-toplogo" alt="" onerror="this.style.display='none'">
   <div class="welcome-card">
     <div class="welcome-crane">🏗️</div>
     <div class="welcome-eyebrow">Site Logistics Challenge</div>
@@ -199,24 +201,22 @@ const SVGNS = "http://www.w3.org/2000/svg";
 
 const TOOLS = {
   select:    { label: "Select / Move",  icon: "✋", hint: "Drag items to reposition. Click to select, then press Delete to remove." },
-  access:    { label: "Access Road",    icon: "🛣️", hint: "Click to add points along the access road. Double-click or press Enter/Esc to finish." },
-  fence:     { label: "Fencing / Hoarding", icon: "🚧", hint: "Click to add points along the fence line. Double-click or Enter/Esc to finish." },
-  crane:     { label: "Crane",          icon: "🏗️", hint: "Click and drag outward to set the swing radius, then release to place. Re-select to resize via the edge handle." },
-  vehicle:   { label: "Vehicle",        icon: "🚛", hint: "Click to place a vehicle marker." },
-  building:  { label: "Building",       icon: "🏢", hint: "Click to add corner points of the building. Double-click or Enter/Esc to close the shape." },
-  storage:   { label: "Material Storage", icon: "📦", hint: "Drag to draw a material storage area." },
-  laydown:   { label: "Laydown / Dump", icon: "🪨", hint: "Drag to draw a material laydown / dumping zone." },
-  exclusion: { label: "Exclusion Zone", icon: "⛔", hint: "Drag to draw a no-go / exclusion zone." },
-  tpz:       { label: "Tree Protection",icon: "🌳", hint: "Click to add corner points of the TPZ. Double-click or Enter/Esc to close the shape." },
-  parking:   { label: "Parking",        icon: "🅿️", hint: "Drag to draw a parking area." },
-  toilet:    { label: "Toilets",        icon: "🚻", hint: "Drag to draw a site toilet / amenities block." },
-  rest:      { label: "Rest Area",      icon: "🛋️", hint: "Drag to draw a rest / break area." },
-  lunch:     { label: "Lunch Area",     icon: "🍴", hint: "Drag to draw a lunch / crib room area." },
-  landfill:  { label: "Landfill Waste", icon: "🗑️", hint: "Drag to draw a general / landfill waste zone." },
-  recycle:   { label: "Recycling",      icon: "♻️", hint: "Drag to draw a recycling collection zone (metal, timber, cardboard)." },
-  organic:   { label: "Green / Organic",icon: "🌿", hint: "Drag to draw a green waste / organics zone." },
-  assembly:  { label: "Assembly Point", icon: "🚶", hint: "Drag to draw an emergency assembly area." },
-  vehicle:   { label: "Vehicle",        icon: "🚛", hint: "Click to place a vehicle marker." },
+  access:    { label: "Access Road",    icon: "🛣️", hint: "Click to add points along the access road. Double-click to finish." },
+  fence:     { label: "Fencing / Hoarding", icon: "🚧", hint: "Click to add points along the fence line. Double-click to finish." },
+  crane:     { label: "Crane",          icon: "🏗️", hint: "Click to drop the crane, move the mouse to size the swing radius, then double-click to finish." },
+  building:  { label: "Building",       icon: "🏢", hint: "Click to add corner points of the building. Double-click to close the shape." },
+  storage:   { label: "Material Storage", icon: "📦", hint: "Click a corner, move to size, then double-click to finish." },
+  laydown:   { label: "Laydown / Dump", icon: "🪨", hint: "Click a corner, move to size, then double-click to finish." },
+  exclusion: { label: "Exclusion Zone", icon: "⛔", hint: "Click a corner, move to size, then double-click to finish." },
+  tpz:       { label: "Tree Protection",icon: "🌳", hint: "Click to add corner points of the TPZ. Double-click to close the shape." },
+  parking:   { label: "Parking",        icon: "🅿️", hint: "Click a corner, move to size, then double-click to finish." },
+  toilet:    { label: "Toilets",        icon: "🚻", hint: "Click a corner, move to size, then double-click to finish." },
+  rest:      { label: "Rest Area",      icon: "🛋️", hint: "Click a corner, move to size, then double-click to finish." },
+  lunch:     { label: "Lunch Area",     icon: "🍴", hint: "Click a corner, move to size, then double-click to finish." },
+  landfill:  { label: "Landfill Waste", icon: "🗑️", hint: "Click to place a landfill waste point." },
+  recycle:   { label: "Recycling",      icon: "♻️", hint: "Click to place a recycling collection point." },
+  organic:   { label: "Green / Organic",icon: "🌿", hint: "Click to place a green waste / organics point." },
+  assembly:  { label: "Assembly Point", icon: "🚶", hint: "Click a corner, move to size, then double-click to finish." },
   draw:      { label: "Free Draw",      icon: "✏️", hint: "Click and drag to sketch freely." },
   erase:     { label: "Delete",         icon: "🧽", hint: "Click an item to remove it." },
 };
@@ -225,7 +225,6 @@ const PALETTE = {
   access:   "#475569",  // slate grey
   fence:    "#f97316",  // orange
   crane:    "#dc2626",  // red
-  vehicle:  "#2563eb",  // blue
   building: "#7c3aed",  // violet
   storage:  "#0891b2",  // teal/cyan
   laydown:  "#ca8a04",  // mustard/amber
@@ -241,18 +240,20 @@ const PALETTE = {
   assembly: "#15803d",  // assembly green
   draw:     "#0f172a"   // near-black
 };
-// which tools are line / rect / poly / point — drives placement + rendering
+// which tools are line / rect / poly / circle — drives placement + rendering
 const LINE_TOOLS = ["access", "fence"];
-const RECT_TOOLS = ["storage", "laydown", "exclusion", "parking", "toilet", "rest", "lunch", "landfill", "recycle", "organic", "assembly"];
+const RECT_TOOLS = ["storage", "laydown", "exclusion", "parking", "toilet", "rest", "lunch", "assembly"];
 const POLY_TOOLS = ["building", "tpz"];
-const POINT_TOOLS = ["vehicle"];
-const RECT_LABEL = { building:"Building", storage:"Storage", laydown:"Laydown", exclusion:"EXCLUSION", tpz:"TPZ", parking:"Parking", toilet:"Toilets", rest:"Rest Area", lunch:"Lunch Area", landfill:"Landfill", recycle:"Recycling", organic:"Green Waste", assembly:"ASSEMBLY" };
+const CIRCLE_TOOLS = ["landfill", "recycle", "organic"];   // fixed-size circle markers
+const RECT_LABEL = { building:"Building", storage:"Storage", laydown:"Laydown", exclusion:"EXCLUSION", tpz:"TPZ", parking:"Parking", toilet:"Toilets", rest:"Rest Area", lunch:"Lunch Area", assembly:"ASSEMBLY" };
+const CIRCLE_LABEL = { landfill:"Landfill", recycle:"Recycle", organic:"Green" };
+const CIRCLE_R = 26;   // standard radius for waste circles
 
 // sidebar grouping
 const TOOL_GROUPS = [
   ["Navigation", ["select"]],
   ["Linear", ["access", "fence"]],
-  ["Plant & Vehicles", ["crane", "vehicle"]],
+  ["Plant", ["crane"]],
   ["Zones & Areas", ["building", "storage", "laydown", "exclusion", "tpz", "parking"]],
   ["Welfare & Amenities", ["toilet", "rest", "lunch"]],
   ["Waste & Sustainability", ["landfill", "recycle", "organic"]],
@@ -297,8 +298,8 @@ function buildSidebar() {
       btn.onclick = () => setTool(key);
       const swatch = PALETTE[key]
         ? `<span class="tool-swatch" style="background:${PALETTE[key]}"></span>`
-        : `<span class="tool-icon">${t.icon}</span>`;
-      btn.innerHTML = `${swatch}<span>${t.label}</span>`;
+        : `<span class="tool-swatch tool-swatch-none"></span>`;
+      btn.innerHTML = `${swatch}<span class="tool-emoji">${t.icon}</span><span>${t.label}</span>`;
       tl.appendChild(btn);
     }
   }
@@ -491,18 +492,19 @@ function drawShape(m, isDraft) {
   else if (POLY_TOOLS.includes(m.type)) {
     drawPolyZone(g, m, isDraft, selected, stroke);
   }
-  // ── RECT ZONES (storage, laydown, exclusion, parking) ──
+  // ── RECT ZONES (storage, laydown, exclusion, parking, amenities, assembly) ──
   else if (RECT_TOOLS.includes(m.type)) {
     drawRectZone(g, m, isDraft, selected, stroke);
   }
-  // ── POINT MARKERS (vehicle) ──
-  else if (m.type === "vehicle") {
-    g.setAttribute("transform", `translate(${m.x},${m.y})`);
-    g.appendChild(el("rect", { x:-26, y:-16, width:52, height:32, rx:4, fill:PALETTE.vehicle, stroke:"#fff", "stroke-width":2 }));
-    g.appendChild(el("rect", { x:-26, y:-16, width:18, height:32, rx:4, fill:"#1e40af" }));
-    g.appendChild(el("circle", { cx:-14, cy:18, r:6, fill:"#0f172a" }));
-    g.appendChild(el("circle", { cx:12, cy:18, r:6, fill:"#0f172a" }));
-    if (selected) g.appendChild(el("circle", { r:40, fill:"none", stroke:PALETTE.vehicle, "stroke-width":1.5, "stroke-dasharray":"4 4", "data-chrome":1 }));
+  // ── CIRCLE MARKERS (landfill, recycle, organic) ──
+  else if (CIRCLE_TOOLS.includes(m.type)) {
+    g.appendChild(el("circle", { cx:m.x, cy:m.y, r:m.r, fill:stroke, "fill-opacity":0.22, stroke, "stroke-width":2.5 }));
+    const ICON = { landfill:"🗑️", recycle:"♻️", organic:"🌿" };
+    const badge = el("text", { x:m.x, y:m.y-2, "font-size":18, "font-family":"Arial", "text-anchor":"middle", "dominant-baseline":"central" });
+    badge.textContent = ICON[m.type]; g.appendChild(badge);
+    const t = el("text", { x:m.x, y:m.y + m.r + 11, "font-size":12, "font-weight":700, fill:stroke, "font-family":"Arial", "text-anchor":"middle" });
+    t.textContent = m.label; g.appendChild(t);
+    if (selected) g.appendChild(el("circle", { cx:m.x, cy:m.y, r:m.r+5, fill:"none", stroke:"#000", "stroke-width":1, "stroke-dasharray":"4 4", "data-chrome":1 }));
   }
   // ── CRANE ──
   else if (m.type === "crane") {
@@ -561,10 +563,10 @@ function drawRectZone(g, m, isDraft, selected, stroke) {
       const badge = el("text", { x:m.x+6, y:m.y+7, "font-size":15, "font-family":"Arial", "dominant-baseline":"hanging" });
       badge.textContent = "🚶"; g.appendChild(badge);
     }
-  } else if (type === "toilet" || type === "rest" || type === "lunch" || type === "landfill" || type === "recycle" || type === "organic") {
-    // amenity / waste blocks: solid rounded block with a small icon badge top-left
+  } else if (type === "toilet" || type === "rest" || type === "lunch") {
+    // amenity blocks: solid rounded block with a small icon badge top-left
     g.appendChild(el("rect", { x:m.x, y:m.y, width:m.w, height:m.h, fill:stroke, "fill-opacity":0.20, stroke, "stroke-width":2.5, rx:6 }));
-    const ICON = { toilet:"🚻", rest:"🛋️", lunch:"🍴", landfill:"🗑️", recycle:"♻️", organic:"🌿" };
+    const ICON = { toilet:"🚻", rest:"🛋️", lunch:"🍴" };
     if (m.w > 26 && m.h > 22) {
       const badge = el("text", { x:m.x+6, y:m.y+7, "font-size":15, "font-family":"Arial", "dominant-baseline":"hanging" });
       badge.textContent = ICON[type]; g.appendChild(badge);
@@ -625,41 +627,40 @@ function onDown(evt) {
   if (tool === "select" || tool === "erase") return;
   const p = toPoint(evt);
 
-  if (POINT_TOOLS.includes(tool)) {
-    items.push({ id:uid(), type:tool, x:p.x, y:p.y, label:"Truck" }); render(); return;
-  }
-  if (tool === "crane") {
-    drag = { mode:"crane-place" };
-    draft = { id:uid(), type:"crane", x:p.x, y:p.y, r:30, label:"Crane" };
+  // Fixed-size circle markers (landfill/recycle/organic) — single click
+  if (CIRCLE_TOOLS.includes(tool)) {
+    items.push({ id:uid(), type:tool, x:p.x, y:p.y, r:CIRCLE_R, label:CIRCLE_LABEL[tool] });
     render(); return;
   }
+  // Crane — click to drop, move to size, double-click to finish
+  if (tool === "crane") {
+    if (!draft || draft.type !== "crane") {
+      draft = { id:uid(), type:"crane", x:p.x, y:p.y, r:30, label:"Crane" };
+    }
+    render(); return;
+  }
+  // Line + polygon tools — click points, double-click to finish
   if (LINE_TOOLS.includes(tool) || POLY_TOOLS.includes(tool)) {
     if (!draft || draft.type !== tool) draft = { id:uid(), type:tool, points:[p], preview:p, label: RECT_LABEL[tool] };
     else { draft.points.push(p); draft.preview = p; }
     render(); return;
   }
+  // Rectangle zones — click a corner, move to size, double-click to finish
   if (RECT_TOOLS.includes(tool)) {
-    drag = { mode:"rect-draw", start:p };
-    draft = { id:uid(), type:tool, x:p.x, y:p.y, w:0, h:0, label: RECT_LABEL[tool] };
+    if (!draft || draft.type !== tool) {
+      draft = { id:uid(), type:tool, x:p.x, y:p.y, w:0, h:0, start:{x:p.x,y:p.y}, label: RECT_LABEL[tool] };
+    }
     render(); return;
   }
   if (tool === "draw") { drag = { mode:"free-draw" }; draft = { id:uid(), type:"draw", points:[p] }; render(); return; }
 }
 
 function onMove(evt) {
-  if (evt.touches && (drag || ((LINE_TOOLS.includes(tool)||POLY_TOOLS.includes(tool)) && draft))) evt.preventDefault();
+  const liveDraft = draft && (LINE_TOOLS.includes(tool)||POLY_TOOLS.includes(tool)||RECT_TOOLS.includes(tool)||tool==="crane");
+  if (evt.touches && (drag || liveDraft)) evt.preventDefault();
   const p = toPoint(evt);
-  if (drag?.mode === "rect-draw" && draft) {
-    const s = drag.start;
-    draft.x = Math.min(s.x,p.x); draft.y = Math.min(s.y,p.y);
-    draft.w = Math.abs(p.x-s.x); draft.h = Math.abs(p.y-s.y);
-    render(); return;
-  }
+
   if (drag?.mode === "free-draw" && draft) { draft.points.push(p); render(); return; }
-  if (drag?.mode === "crane-place" && draft) {
-    draft.r = Math.max(30, Math.hypot(p.x - draft.x, p.y - draft.y));
-    render(); return;
-  }
   if (drag?.mode === "move" && selectedId != null) {
     const dx = p.x - drag.last.x, dy = p.y - drag.last.y; drag.last = p;
     const m = items.find(i => i.id === selectedId); if (m) moveItem(m, dx, dy);
@@ -670,17 +671,21 @@ function onMove(evt) {
     if (m && m.type === "crane") { m.r = Math.max(20, Math.hypot(p.x-m.x, p.y-m.y)); render(); }
     return;
   }
+  // live sizing while a draft is open (no mouse button needed)
+  if (draft && draft.type === "crane") {
+    draft.r = Math.max(30, Math.hypot(p.x - draft.x, p.y - draft.y));
+    render(); return;
+  }
+  if (draft && RECT_TOOLS.includes(draft.type) && draft.start) {
+    const s = draft.start;
+    draft.x = Math.min(s.x,p.x); draft.y = Math.min(s.y,p.y);
+    draft.w = Math.abs(p.x-s.x); draft.h = Math.abs(p.y-s.y);
+    render(); return;
+  }
   if ((LINE_TOOLS.includes(tool)||POLY_TOOLS.includes(tool)) && draft) { draft.preview = p; render(); }
 }
 
 function onUp() {
-  if (drag?.mode === "rect-draw" && draft) {
-    if (draft.w > 6 && draft.h > 6) { delete draft.preview; items.push(draft); }
-    draft = null; drag = null; render(); return;
-  }
-  if (drag?.mode === "crane-place" && draft) {
-    items.push(draft); draft = null; drag = null; render(); return;
-  }
   if (drag?.mode === "free-draw" && draft) {
     if (draft.points.length > 1) items.push(draft);
     draft = null; drag = null; render(); return;
@@ -690,20 +695,34 @@ function onUp() {
 
 function finishRoad() {
   if (!draft) return;
-  const isLine = LINE_TOOLS.includes(draft.type);
-  const isPoly = POLY_TOOLS.includes(draft.type);
-  // a double-click adds a near-duplicate last point; drop it if so
-  const pts = draft.points;
+  const type = draft.type;
+
+  // Crane — commit at current radius
+  if (type === "crane") {
+    items.push({ id:draft.id, type:"crane", x:draft.x, y:draft.y, r:draft.r, label:draft.label });
+    draft = null; render(); return;
+  }
+  // Rectangle zones — commit if it has size
+  if (RECT_TOOLS.includes(type)) {
+    if (draft.w > 6 && draft.h > 6) {
+      items.push({ id:draft.id, type, x:draft.x, y:draft.y, w:draft.w, h:draft.h, label:draft.label });
+    }
+    draft = null; render(); return;
+  }
+  // Line + polygon — drop the near-duplicate trailing point from the double-click
+  const isLine = LINE_TOOLS.includes(type);
+  const isPoly = POLY_TOOLS.includes(type);
+  const pts = draft.points || [];
   if (pts.length >= 2) {
     const a = pts[pts.length-1], b = pts[pts.length-2];
     if (Math.hypot(a.x-b.x, a.y-b.y) < 8) pts.pop();
   }
   if (isLine && pts.length >= 2) {
-    items.push({ id:draft.id, type:draft.type, points:pts });
+    items.push({ id:draft.id, type, points:pts });
   } else if (isPoly && pts.length >= 3) {
-    items.push({ id:draft.id, type:draft.type, points:pts, label:draft.label });
+    items.push({ id:draft.id, type, points:pts, label:draft.label });
   }
-  if (isLine || isPoly) { draft = null; render(); }
+  draft = null; render();
 }
 
 function moveItem(m, dx, dy) {
@@ -727,12 +746,10 @@ window.addEventListener("keydown", (e) => {
 function undo() { draft = null; items.pop(); render(); }
 function clearAll() { items = []; selectedId = null; draft = null; render(); }
 function cleanSlate() {
-  if (!items.length) { showToast("Nothing to clear."); return; }
-  if (!window.confirm("Clear all items and start fresh? This cannot be undone.")) return;
+  if (!window.confirm("Clear everything and return to the start screen for a new student?")) return;
   items = []; selectedId = null; draft = null;
   try { localStorage.removeItem(STORE_KEY); } catch (e) {}
-  render();
-  showToast("🧹 Cleared! Fresh canvas.");
+  location.reload();
 }
 
 // ── Export PDF (Site Logistics Plan with Revit-style title block) ───────
@@ -825,51 +842,60 @@ function buildPdf(planCanvas, name, logo1, logo2) {
   const tw = TB;
   doc.setLineWidth(0.5);
   doc.rect(tx, M, tw, PH - 2*M);
-
-  let cy = M;   // running y cursor inside the strip
   const pad = 4;
 
-  // Logos area
+  // Logos area (top)
   const logoBoxH = 30;
   doc.setLineWidth(0.3);
   doc.line(tx, M + logoBoxH, tx + tw, M + logoBoxH);
   placeLogos(doc, tx, M, tw, logoBoxH, logo1, logo2);
-  cy = M + logoBoxH;
 
-  // Legend box
-  const legH = drawPdfLegend(doc, tx, cy, tw);
-  cy += legH;
-  doc.line(tx, cy, tx + tw, cy);
+  // Legend box (directly below the logos)
+  drawPdfLegend(doc, tx, M + logoBoxH, tw);
 
-  // Title block info fields
+  // ── Project information block, grouped at the BOTTOM ──
   const today = new Date();
   const dd = String(today.getDate()).padStart(2,"0");
   const mm = String(today.getMonth()+1).padStart(2,"0");
-  const yyyy = today.getFullYear();
-  const dateStr = dd + "/" + mm + "/" + yyyy;
-  const fields = [
-    ["PROJECT TITLE", "Playford International College Redevelopment"],
-    ["PROJECT ADDRESS", "Philip Hwy, Elizabeth SA 5112"],
-    ["DRAWING NAME", "Site Logistics Plan"],
-    ["SCALE", "Not to Scale"],
-    ["DATE", dateStr],
-    ["DRAWN BY", name || "-"],
-    ["REVISION", "A"],
-  ];
-  const remaining = (PH - M) - cy;
-  const rowH = remaining / fields.length;
-  doc.setTextColor(20);
-  for (let i = 0; i < fields.length; i++) {
-    const ry = cy + i * rowH;
-    if (i > 0) { doc.setLineWidth(0.2); doc.line(tx, ry, tx + tw, ry); }
-    doc.setFont("helvetica", "bold"); doc.setFontSize(6);
-    doc.setTextColor(90);
-    doc.text(fields[i][0], tx + pad, ry + 4);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-    doc.setTextColor(20);
-    const wrapped = doc.splitTextToSize(fields[i][1], tw - pad*2);
-    doc.text(wrapped, tx + pad, ry + 9);
-  }
+  const dateStr = dd + "/" + mm + "/" + today.getFullYear();
+
+  // four stacked bands (label above, value below), matching the reference
+  const r1 = 17;  // PROJECT NAME & ADDRESS (taller, wraps)
+  const r2 = 13;  // DRAWING TITLE
+  const r3 = 13;  // SCALE | DATE
+  const r4 = 13;  // DRAWN BY | REVISION
+  const blockH = r1 + r2 + r3 + r4;
+  const bx = tx, bw = tw;
+  let by = (PH - M) - blockH;   // anchored to bottom inner edge
+
+  // top divider of the info block
+  doc.setLineWidth(0.5); doc.line(bx, by, bx + bw, by);
+
+  const label = (text, x, y) => { doc.setFont("helvetica","normal"); doc.setFontSize(6.5); doc.setTextColor(90); doc.text(text, x + pad, y + 4.5); };
+  const value = (text, x, y, w) => { doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(20); doc.text(doc.splitTextToSize(text, w - pad*2), x + pad, y + 10); };
+
+  // Row 1 — PROJECT NAME & ADDRESS (full width)
+  label("PROJECT NAME & ADDRESS", bx, by);
+  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(20);
+  doc.text(doc.splitTextToSize("Playford International College Redevelopment, Philip Hwy, Elizabeth SA 5112", bw - pad*2), bx + pad, by + 9.5);
+  by += r1; doc.setLineWidth(0.3); doc.line(bx, by, bx + bw, by);
+
+  // Row 2 — DRAWING TITLE (full width)
+  label("DRAWING TITLE", bx, by);
+  value("Site Logistics Plan", bx, by, bw);
+  by += r2; doc.line(bx, by, bx + bw, by);
+
+  // Row 3 — SCALE | DATE (two columns)
+  const half = bw / 2;
+  doc.line(bx + half, by, bx + half, by + r3);
+  label("SCALE", bx, by);              value("Not to Scale", bx, by, half);
+  label("DATE", bx + half, by);        value(dateStr, bx + half, by, half);
+  by += r3; doc.line(bx, by, bx + bw, by);
+
+  // Row 4 — DRAWN BY | REVISION (two columns)
+  doc.line(bx + half, by, bx + half, by + r4);
+  label("DRAWN BY", bx, by);           value(name || "-", bx, by, half);
+  label("REVISION", bx + half, by);    value("A", bx + half, by, half);
 
   const safe = (name || "Builder").replace(/[^\w\- ]+/g, "").trim();
   doc.save("Site Logistics Plan-" + (safe || "Builder") + ".pdf");
