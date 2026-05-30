@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sarah - Site Logistics Planner</title>
+<title>Site Logistics Planner</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -12,11 +12,14 @@ body { font-family: Arial, sans-serif; background: #001B49; color: #f9fafb; min-
 
 /* ── Topbar ──────────────────────────────────────────────────────────── */
 .topbar { background: #0a1f4e; border-bottom: 2px solid #1e3a6e; height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: sticky; top: 0; z-index: 200; gap: 12px; flex-shrink: 0; }
-.topbar-left { display: flex; align-items: center; gap: 14px; }
+.topbar-left { display: flex; align-items: center; gap: 14px; flex: 1; }
+.topbar-center { display: flex; justify-content: center; align-items: center; flex: 0 0 auto; }
+.btn-download-top { background: linear-gradient(135deg,#22c55e,#15803d); color: #fff; border: none; padding: 11px 26px; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; font-family: Arial, sans-serif; transition: all 0.15s; white-space: nowrap; box-shadow: 0 3px 12px rgba(34,197,94,0.4); }
+.btn-download-top:hover { background: linear-gradient(135deg,#16a34a,#166534); transform: translateY(-1px); box-shadow: 0 5px 16px rgba(34,197,94,0.55); }
 .topbar-title { font-size: 17px; font-weight: bold; color: #f9fafb; line-height: 1.1; }
 .topbar-sub { font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; color: #4b6a9e; margin-top: 3px; }
 .topbar-icon { font-size: 26px; }
-.topbar-right { display: flex; justify-content: flex-end; align-items: center; gap: 14px; min-width: 140px; }
+.topbar-right { display: flex; justify-content: flex-end; align-items: center; gap: 14px; flex: 1; min-width: 140px; }
 .topbar-logo { height: 42px; max-width: 170px; object-fit: contain; background: #fff; padding: 4px 8px; border-radius: 6px; }
 .btn-slate { background: transparent; color: #fca5a5; border: 1px solid #7f1d1d; padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; font-family: Arial, sans-serif; transition: all 0.15s; white-space: nowrap; }
 .btn-slate:hover { background: rgba(239,68,68,0.12); border-color: #ef4444; color: #fff; }
@@ -63,7 +66,8 @@ body { font-family: Arial, sans-serif; background: #001B49; color: #f9fafb; min-
 .main { flex: 1; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; overflow: auto; min-width: 0; }
 .hint-bar { background: #1e293b; border: 1px solid #1e3a6e; border-radius: 8px; padding: 10px 16px; font-size: 12.5px; color: #cbd5e1; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .hint-bar b { color: #93c5fd; }
-.canvas-wrap { background: #1e293b; border: 1px solid #1e3a6e; border-radius: 10px; overflow: hidden; align-self: center; max-width: 100%; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+.canvas-wrap { background: #1e293b; border: 1px solid #1e3a6e; border-radius: 10px; align-self: center; max-width: 100%; box-shadow: 0 8px 30px rgba(0,0,0,0.4); position: relative; }
+.canvas-text-input { position: absolute; z-index: 50; min-width: 120px; min-height: 28px; padding: 4px 6px; border: 2px solid #000; border-radius: 4px; background: rgba(255,255,255,0.96); color: #000; font-family: Arial, sans-serif; font-weight: 700; line-height: 1.25; resize: both; outline: none; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
 .canvas-wrap svg { display: block; width: 100%; touch-action: none; background: #fff; }
 
 .idle { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #4b6a9e; text-align: center; }
@@ -148,10 +152,13 @@ body { font-family: Arial, sans-serif; background: #001B49; color: #f9fafb; min-
       <div class="topbar-sub">Plan your school's construction site</div>
     </div>
   </div>
+  <div class="topbar-center">
+    <button class="btn-download-top" onclick="exportPng()">⬇ Download your Work</button>
+  </div>
   <div class="topbar-right">
     <button class="btn-load-top" id="loadBtn" onclick="document.getElementById('pdfUpload').click()">📂 Load PDF</button>
     <button class="btn-slate" onclick="cleanSlate()">🧹 Clean Slate</button>
-    <img src="logo1.png" class="topbar-logo" alt="" onerror="this.style.display='none'">
+    <img src="logo.png" class="topbar-logo" alt="" onerror="this.style.display='none'">
   </div>
 </div>
 <input type="file" id="pdfUpload" accept="application/pdf" style="display:none" onchange="loadFromFile(this.files[0])">
@@ -167,8 +174,6 @@ body { font-family: Arial, sans-serif; background: #001B49; color: #f9fafb; min-
       <button class="btn-act" onclick="undo()">↶ Undo</button>
       <button class="btn-act danger" onclick="clearAll()">🗑 Clear</button>
     </div>
-    <div style="height:8px"></div>
-    <button class="btn-export" onclick="exportPng()">📄 Export PDF</button>
 
     <hr class="s-divider">
     <div class="section-header">Legend</div>
@@ -430,6 +435,39 @@ function toPoint(evt) {
   return { x: p.x, y: p.y };
 }
 
+// On-screen text entry: overlay a textarea at the click point, commit on Enter / blur
+function startTextInput(p, evt) {
+  const wrap = svg.parentElement;           // .canvas-wrap (positioned)
+  if (getComputedStyle(wrap).position === "static") wrap.style.position = "relative";
+  const src = evt.touches ? evt.touches[0] : evt;
+  const wrapRect = wrap.getBoundingClientRect();
+  const left = src.clientX - wrapRect.left;
+  const top = src.clientY - wrapRect.top;
+  // scale: svg user units -> screen px
+  const scale = wrap.getBoundingClientRect().width / dims.w;
+
+  const ta = document.createElement("textarea");
+  ta.className = "canvas-text-input";
+  ta.style.left = left + "px";
+  ta.style.top = top + "px";
+  ta.style.fontSize = (16 * scale) + "px";
+  ta.placeholder = "Type, then Enter";
+  wrap.appendChild(ta);
+  ta.focus();
+
+  const commit = () => {
+    const val = ta.value.replace(/\s+$/,"");
+    if (ta.parentElement) ta.parentElement.removeChild(ta);
+    if (val.trim()) { items.push({ id:uid(), type:"text", x:p.x, y:p.y, text:val }); render(); }
+  };
+  ta.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commit(); }
+    if (e.key === "Escape") { e.preventDefault(); if (ta.parentElement) ta.parentElement.removeChild(ta); }
+  });
+  ta.addEventListener("blur", commit);
+}
+
 // ── Render ──────────────────────────────────────────────────────────────
 function render() {
   if (!svg) return;
@@ -464,6 +502,7 @@ function drawShape(m, isDraft) {
   const stroke = PALETTE[m.type] || "#333";
   const g = el("g", {});
   if (!isDraft) {
+    g.setAttribute("opacity", "0.8");   // placed items at 80% opacity
     g.style.cursor = tool === "select" ? "move" : tool === "erase" ? "not-allowed" : "default";
     g.addEventListener("mousedown", (e) => itemDown(e, m));
     g.addEventListener("touchstart", (e) => itemDown(e, m), {passive:false});
@@ -512,15 +551,16 @@ function drawShape(m, isDraft) {
   // ── TEXT NOTE ──
   else if (m.type === "text") {
     const lines = String(m.text).split("\n");
-    const fs = 16, lh = fs * 1.25;
+    const fs = 16, lh = fs * 1.25, padX = 7, padY = 6;
+    const boxW = Math.max(...lines.map(l => l.length)) * fs * 0.58 + padX*2;
+    const boxH = lines.length * lh + padY*2;
+    // white box with black border
+    g.appendChild(el("rect", { x:m.x, y:m.y, width:boxW, height:boxH, rx:3, fill:"#ffffff", "fill-opacity":0.92, stroke:"#000000", "stroke-width":1.5 }));
     lines.forEach((ln, i) => {
-      const t = el("text", { x:m.x, y:m.y + i*lh, "font-size":fs, "font-weight":700, fill:"#000000", "font-family":"Arial", "dominant-baseline":"hanging" });
+      const t = el("text", { x:m.x + padX, y:m.y + padY + i*lh, "font-size":fs, "font-weight":700, fill:"#000000", "font-family":"Arial", "dominant-baseline":"hanging" });
       t.textContent = ln; g.appendChild(t);
     });
-    if (selected) {
-      const w = Math.max(...lines.map(l => l.length)) * fs * 0.6 + 8;
-      g.appendChild(el("rect", { x:m.x-4, y:m.y-4, width:w, height:lines.length*lh+6, fill:"none", stroke:"#000", "stroke-width":1, "stroke-dasharray":"4 4", "data-chrome":1 }));
-    }
+    if (selected) g.appendChild(el("rect", { x:m.x-3, y:m.y-3, width:boxW+6, height:boxH+6, fill:"none", stroke:"#000", "stroke-width":1, "stroke-dasharray":"4 4", "data-chrome":1 }));
   }
   // ── CRANE ──
   else if (m.type === "crane") {
@@ -660,10 +700,9 @@ function onDown(evt) {
     items.push({ id:uid(), type:tool, x:p.x, y:p.y, r:CIRCLE_R, label:CIRCLE_LABEL[tool] });
     render(); return;
   }
-  // Text note — click, then type the message
+  // Text note — click, then type on screen
   if (tool === "text") {
-    const msg = (window.prompt("Enter your text:", "") || "").trim();
-    if (msg) { items.push({ id:uid(), type:"text", x:p.x, y:p.y, text:msg }); render(); }
+    startTextInput(p, evt);
     return;
   }
   // Crane — click to drop, move to size, double-click to finish
@@ -849,19 +888,15 @@ function buildPdf(planCanvas, name, logo1, logo2) {
   doc.setLineWidth(0.3);
   doc.rect(dx, dy, dw, dh);
 
-  // bottom appreciation ribbon (kept) — slim navy band across the drawing area
-  const ribH = 11;
+  // bottom appreciation message — fancy italic text only, no border or fill
+  const ribH = 12;
   const ribY = dy + dh - ribH;
-  doc.setFillColor(navyR, navyG, navyB);
-  doc.rect(dx, ribY, dw, ribH, "F");
-  doc.setFillColor(245, 158, 11);
-  doc.rect(dx, ribY - 0.8, dw, 0.8, "F");   // gold line above ribbon
-  doc.setTextColor(255);
-  doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+  doc.setTextColor(navyR, navyG, navyB);
+  doc.setFont("times", "italic"); doc.setFontSize(14);
   const msg = name
     ? "Great job, " + name + "! You will absolutely thrive in the construction industry."
     : "Great job! You will absolutely thrive in the construction industry.";
-  doc.text(msg, dx + dw/2, ribY + ribH/2 + 1.8, { align: "center" });
+  doc.text(msg, dx + dw/2, ribY + ribH/2 + 2, { align: "center" });
 
   // fit plan image preserving aspect ratio, above the ribbon
   const planTop = dy + 2;
@@ -879,8 +914,8 @@ function buildPdf(planCanvas, name, logo1, logo2) {
   doc.rect(tx, M, tw, PH - 2*M);
   const pad = 4;
 
-  // Logos area (top)
-  const logoBoxH = 30;
+  // Logos area (top) — logos stacked vertically
+  const logoBoxH = 52;
   doc.setLineWidth(0.3);
   doc.line(tx, M + logoBoxH, tx + tw, M + logoBoxH);
   placeLogos(doc, tx, M, tw, logoBoxH, logo1, logo2);
@@ -941,40 +976,41 @@ function placeLogos(doc, tx, ty, tw, boxH, logo1, logo2) {
   const logos = [logo1, logo2].filter(Boolean);
   if (!logos.length) return;
   const pad = 4;
-  const cellW = tw / logos.length;
+  const cellH = boxH / logos.length;   // stacked vertically
   logos.forEach((img, i) => {
-    const maxW = cellW - pad*2, maxH = boxH - pad*2;
+    const maxW = tw - pad*2, maxH = cellH - pad*2;
     let w = img.width, h = img.height;
     const s = Math.min(maxW/w, maxH/h);
     w *= s; h *= s;
-    const cx = tx + i*cellW + (cellW - w)/2;
-    const cyy = ty + (boxH - h)/2;
+    const cx = tx + (tw - w)/2;
+    const cyy = ty + i*cellH + (cellH - h)/2;
     const c = document.createElement("canvas");
     c.width = img.width; c.height = img.height;
     const cc = c.getContext("2d");
     cc.fillStyle = "#ffffff"; cc.fillRect(0,0,c.width,c.height);
     cc.drawImage(img, 0, 0);
     doc.addImage(c.toDataURL("image/png"), "PNG", cx, cyy, w, h);
+    if (i > 0) { doc.setLineWidth(0.2); doc.line(tx, ty + i*cellH, tx + tw, ty + i*cellH); }
   });
 }
 
 function drawPdfLegend(doc, tx, ty, tw) {
   const entries = usedTypes();
-  const pad = 4, rowH = 4.4, sw = 3;
-  const titleH = 6;
-  const h = titleH + 2 + entries.length * rowH + 2;
+  const pad = 4, rowH = 6, sw = 4;
+  const titleH = 8;
+  const h = titleH + 3 + entries.length * rowH + 2;
   doc.setFillColor(0, 25, 72);
   doc.rect(tx, ty, tw, titleH, "F");
-  doc.setTextColor(255); doc.setFont("helvetica", "bold"); doc.setFontSize(7);
-  doc.text("SITE LEGEND", tx + pad, ty + titleH - 1.8);
-  let ry = ty + titleH + 3;
-  doc.setFont("helvetica", "normal"); doc.setFontSize(6.5);
+  doc.setTextColor(255); doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
+  doc.text("SITE LEGEND", tx + pad, ty + titleH - 2.4);
+  let ry = ty + titleH + 4.5;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
   for (const [label, key] of entries) {
     const rgb = hexToRgb(PALETTE[key]);
     doc.setFillColor(rgb.r, rgb.g, rgb.b);
     doc.rect(tx + pad, ry - sw + 0.5, sw, sw, "F");
     doc.setTextColor(20);
-    doc.text(label, tx + pad + sw + 2, ry);
+    doc.text(label, tx + pad + sw + 2.5, ry);
     ry += rowH;
   }
   return h;
