@@ -988,7 +988,7 @@ function buildPdf(planCanvas, name, logo1, logo2) {
   // Row 1 — PROJECT NAME & ADDRESS (full width)
   label("PROJECT NAME & ADDRESS", bx, by);
   doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(20);
-  doc.text(doc.splitTextToSize("Playford International College Redevelopment, Philip Hwy, Elizabeth SA 5112", bw - pad*2), bx + pad, by + 9.5);
+  doc.text(doc.splitTextToSize("Playford International College Redevelopment <br> Philip Hwy, Elizabeth SA 5112", bw - pad*2), bx + pad, by + 9.5);
   by += r1; doc.setLineWidth(0.3); doc.line(bx, by, bx + bw, by);
 
   // Row 2 — DRAWING TITLE (full width)
