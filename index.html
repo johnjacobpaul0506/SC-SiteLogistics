@@ -16,6 +16,12 @@ body { font-family: Arial, sans-serif; background: #001B49; color: #f9fafb; min-
 .topbar-center { display: flex; justify-content: center; align-items: center; flex: 0 0 auto; }
 .btn-download-top { background: linear-gradient(135deg,#22c55e,#15803d); color: #fff; border: none; padding: 11px 26px; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; font-family: Arial, sans-serif; transition: all 0.15s; white-space: nowrap; box-shadow: 0 3px 12px rgba(34,197,94,0.4); }
 .btn-download-top:hover { background: linear-gradient(135deg,#16a34a,#166534); transform: translateY(-1px); box-shadow: 0 5px 16px rgba(34,197,94,0.55); }
+.dim-control { display: flex; align-items: center; gap: 8px; }
+.btn-dim { background: transparent; color: #cbd5e1; border: 1px solid #1e3a6e; padding: 9px 14px; border-radius: 9px; font-size: 13px; font-weight: bold; cursor: pointer; font-family: Arial, sans-serif; transition: all 0.15s; white-space: nowrap; }
+.btn-dim:hover { border-color: #3b82f6; color: #fff; }
+.btn-dim.on { background: rgba(59,130,246,0.18); border-color: #3b82f6; color: #93c5fd; }
+.dim-slider { width: 90px; accent-color: #3b82f6; cursor: pointer; }
+.dim-slider:disabled { opacity: 0.35; cursor: default; }
 .topbar-title { font-size: 17px; font-weight: bold; color: #f9fafb; line-height: 1.1; }
 .topbar-sub { font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; color: #4b6a9e; margin-top: 3px; }
 .topbar-icon { font-size: 26px; }
@@ -154,6 +160,11 @@ body { font-family: Arial, sans-serif; background: #001B49; color: #f9fafb; min-
     </div>
   </div>
   <div class="topbar-center">
+    <div class="dim-control">
+      <button class="btn-dim" id="dimBtn" onclick="toggleDim()">🌙 Dim Plan</button>
+      <input type="range" id="dimSlider" class="dim-slider" min="0" max="80" value="40" disabled
+             oninput="setDim(this.value)" title="Adjust dimness">
+    </div>
     <button class="btn-download-top" onclick="exportPng()">⬇ Download your Work</button>
   </div>
   <div class="topbar-right">
@@ -209,20 +220,21 @@ const TOOLS = {
   select:    { label: "Select / Move",  icon: "✋", hint: "Drag items to reposition. Click to select, then press Delete to remove." },
   access:    { label: "Access Road",    icon: "🛣️", hint: "Click to add points along the access road. Double-click or press Esc to finish." },
   fence:     { label: "Fencing / Hoarding", icon: "🚧", hint: "Click to add points along the fence line. Double-click or press Esc to finish." },
+  gate:      { label: "Gate",           icon: "🚪", hint: "Click the two ends of the gate opening, then double-click or press Esc to finish." },
   crane:     { label: "Crane",          icon: "🏗️", hint: "Click to drop the crane, move the mouse to size the swing radius, then double-click or press Esc to finish." },
   building:  { label: "Building",       icon: "🏢", hint: "Click to add corner points of the building. Double-click or press Esc to close the shape." },
-  storage:   { label: "Material Storage", icon: "📦", hint: "Click a corner, move to size, then double-click or press Esc to finish." },
-  laydown:   { label: "Laydown / Dump", icon: "🪨", hint: "Click a corner, move to size, then double-click or press Esc to finish." },
-  exclusion: { label: "Exclusion Zone", icon: "⛔", hint: "Click a corner, move to size, then double-click or press Esc to finish." },
+  storage:   { label: "Material Storage", icon: "📦", hint: "Click each corner of the area. Double-click or press Esc to close the shape." },
+  laydown:   { label: "Laydown / Dump", icon: "🪨", hint: "Click each corner of the area. Double-click or press Esc to close the shape." },
+  exclusion: { label: "Exclusion Zone", icon: "⛔", hint: "Click each corner of the area. Double-click or press Esc to close the shape." },
   tpz:       { label: "Tree Protection",icon: "🌳", hint: "Click to add corner points of the TPZ. Double-click or press Esc to close the shape." },
-  parking:   { label: "Parking",        icon: "🅿️", hint: "Click a corner, move to size, then double-click or press Esc to finish." },
-  toilet:    { label: "Toilets",        icon: "🚻", hint: "Click a corner, move to size, then double-click or press Esc to finish." },
-  rest:      { label: "Rest Area",      icon: "🛋️", hint: "Click a corner, move to size, then double-click or press Esc to finish." },
-  lunch:     { label: "Lunch Area",     icon: "🍴", hint: "Click a corner, move to size, then double-click or press Esc to finish." },
+  parking:   { label: "Parking",        icon: "🅿️", hint: "Click each corner of the area. Double-click or press Esc to close the shape." },
+  toilet:    { label: "Toilets",        icon: "🚻", hint: "Click each corner of the area. Double-click or press Esc to close the shape." },
+  rest:      { label: "Rest Area",      icon: "🛋️", hint: "Click each corner of the area. Double-click or press Esc to close the shape." },
+  lunch:     { label: "Lunch Area",     icon: "🍴", hint: "Click each corner of the area. Double-click or press Esc to close the shape." },
   landfill:  { label: "Landfill Waste", icon: "🗑️", hint: "Click to place a landfill waste point." },
   recycle:   { label: "Recycling",      icon: "♻️", hint: "Click to place a recycling collection point." },
   organic:   { label: "Green / Organic",icon: "🌿", hint: "Click to place a green waste / organics point." },
-  assembly:  { label: "Assembly Point", icon: "🚶", hint: "Click a corner, move to size, then double-click or press Esc to finish." },
+  assembly:  { label: "Assembly Point", icon: "🚶", hint: "Click each corner of the area. Double-click or press Esc to close the shape." },
   camera:    { label: "Security Camera",icon: "📹", hint: "Click to place a 360° security camera (CCTV) with full coverage." },
   text:      { label: "Text Note",      icon: "🔤", hint: "Click where you want the text, then type your message and press Enter." },
   draw:      { label: "Free Draw",      icon: "✏️", hint: "Click and drag to sketch freely." },
@@ -232,6 +244,7 @@ const TOOLS = {
 const PALETTE = {
   access:   "#475569",  // slate grey
   fence:    "#f97316",  // orange
+  gate:     "#0d9488",  // teal — gate
   crane:    "#dc2626",  // red
   building: "#7c3aed",  // violet
   storage:  "#0891b2",  // teal/cyan
@@ -250,10 +263,10 @@ const PALETTE = {
   text:     "#000000",  // text notes — black
   draw:     "#0f172a"   // near-black
 };
-// which tools are line / rect / poly / circle / point — drives placement + rendering
-const LINE_TOOLS = ["access", "fence"];
-const RECT_TOOLS = ["storage", "laydown", "exclusion", "parking", "toilet", "rest", "lunch", "assembly"];
-const POLY_TOOLS = ["building", "tpz"];
+// which tools are line / poly / circle / point — drives placement + rendering
+const LINE_TOOLS = ["access", "fence", "gate"];
+const RECT_TOOLS = [];   // all area tools are now polygons
+const POLY_TOOLS = ["building", "tpz", "storage", "laydown", "exclusion", "parking", "toilet", "rest", "lunch", "assembly"];
 const CIRCLE_TOOLS = ["landfill", "recycle", "organic"];   // fixed-size circle markers
 const POINT_TOOLS = ["camera"];                             // single-click icon markers
 const RECT_LABEL = { building:"Building", storage:"Storage", laydown:"Laydown", exclusion:"EXCLUSION", tpz:"TPZ", parking:"Parking", toilet:"Toilets", rest:"Rest Area", lunch:"Lunch Area", assembly:"ASSEMBLY" };
@@ -263,7 +276,7 @@ const CIRCLE_R = 26;   // standard radius for waste circles
 // sidebar grouping
 const TOOL_GROUPS = [
   ["Navigation", ["select"]],
-  ["Linear", ["access", "fence"]],
+  ["Linear", ["access", "fence", "gate"]],
   ["Plant", ["crane"]],
   ["Zones & Areas", ["building", "storage", "laydown", "exclusion", "tpz", "parking"]],
   ["Welfare & Amenities", ["toilet", "rest", "lunch"]],
@@ -273,7 +286,7 @@ const TOOL_GROUPS = [
   ["Other", ["erase"]],
 ];
 const LEGEND = [
-  ["Access Road","access"],["Fencing / Hoarding","fence"],["Crane + swing","crane"],
+  ["Access Road","access"],["Fencing / Hoarding","fence"],["Gate","gate"],["Crane + swing","crane"],
   ["Building","building"],["Material Storage","storage"],
   ["Laydown / Dump","laydown"],["Exclusion Zone","exclusion"],["Tree Protection","tpz"],
   ["Parking","parking"],["Toilets","toilet"],["Rest Area","rest"],["Lunch Area","lunch"],
@@ -293,6 +306,8 @@ const uid = () => idCounter++;
 let pdfDoc = null, pageNum = 1, pageTotal = 1;
 let dims = { w: 1000, h: 700 };
 let svg = null, bgImageHref = null;
+let dimOn = false;       // is the plan dimmed?
+let dimLevel = 0.4;      // 0 = no dim, 1 = fully black
 
 // ── Build sidebar ───────────────────────────────────────────────────────
 function buildSidebar() {
@@ -512,7 +527,12 @@ function render() {
   if (!svg) return;
   svg.style.cursor = tool === "select" ? "default" : "crosshair";
   svg.innerHTML = "";
-  if (bgImageHref) svg.appendChild(el("image", { href: bgImageHref, x:0, y:0, width:dims.w, height:dims.h }));
+  if (bgImageHref) {
+    svg.appendChild(el("image", { href: bgImageHref, x:0, y:0, width:dims.w, height:dims.h }));
+    if (dimOn && dimLevel > 0) {
+      svg.appendChild(el("rect", { x:0, y:0, width:dims.w, height:dims.h, fill:"#000000", "fill-opacity":dimLevel }));
+    }
+  }
   items.forEach(m => drawShape(m, false));
   if (draft) drawShape(draft, true);
   // persist whenever we're in a stable (non-dragging, non-drafting) state
@@ -551,9 +571,9 @@ function drawShape(m, isDraft) {
   if (m.type === "access") {
     const pts = (isDraft && m.preview) ? [...m.points, m.preview] : m.points;
     const d = pts.map((p,i) => `${i?"L":"M"}${p.x},${p.y}`).join(" ");
-    g.appendChild(el("path", { d, fill:"none", stroke:"#0f172a", "stroke-width":15, "stroke-linecap":"round", "stroke-linejoin":"round", opacity: isDraft?0.4:0.85 }));
-    g.appendChild(el("path", { d, fill:"none", stroke, "stroke-width":10, "stroke-linecap":"round", "stroke-linejoin":"round" }));
-    g.appendChild(el("path", { d, fill:"none", stroke:"#fff", "stroke-width":1.5, "stroke-dasharray":"10 12", opacity:0.9 }));
+    g.appendChild(el("path", { d, fill:"none", stroke:"#0f172a", "stroke-width":30, "stroke-linecap":"round", "stroke-linejoin":"round", opacity: isDraft?0.4:0.85 }));
+    g.appendChild(el("path", { d, fill:"none", stroke, "stroke-width":20, "stroke-linecap":"round", "stroke-linejoin":"round" }));
+    g.appendChild(el("path", { d, fill:"none", stroke:"#fff", "stroke-width":2, "stroke-dasharray":"16 18", opacity:0.9 }));
     if (selected || isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
   }
   // ── FENCING / HOARDING ──
@@ -564,17 +584,44 @@ function drawShape(m, isDraft) {
     g.appendChild(el("path", { d, fill:"none", stroke, "stroke-width":9, "stroke-linecap":"butt", "stroke-dasharray":"1 11", opacity:0.85 }));
     if (selected || isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
   }
+  // ── GATE ──
+  else if (m.type === "gate") {
+    const pts = (isDraft && m.preview) ? [...m.points, m.preview] : m.points;
+    // posts at each vertex
+    pts.forEach(p => g.appendChild(el("rect", { x:p.x-3, y:p.y-3, width:6, height:6, fill:stroke })));
+    if (pts.length >= 2) {
+      const a = pts[0], b = pts[pts.length-1];
+      const len = Math.hypot(b.x-a.x, b.y-a.y);
+      // dashed opening line between posts
+      g.appendChild(el("line", { x1:a.x, y1:a.y, x2:b.x, y2:b.y, stroke, "stroke-width":2, "stroke-dasharray":"5 4", opacity:0.7 }));
+      // gate leaf (solid) swinging from the first post, ~70% of span
+      const ang = Math.atan2(b.y-a.y, b.x-a.x) - Math.PI/4;   // 45° swing
+      const leaf = len * 0.7;
+      const lx = a.x + Math.cos(ang)*leaf, ly = a.y + Math.sin(ang)*leaf;
+      g.appendChild(el("line", { x1:a.x, y1:a.y, x2:lx, y2:ly, stroke, "stroke-width":4, "stroke-linecap":"round" }));
+      // swing arc
+      const r = leaf, a0 = Math.atan2(b.y-a.y, b.x-a.x), a1 = ang;
+      const sx = a.x + Math.cos(a0)*r, sy = a.y + Math.sin(a0)*r;
+      g.appendChild(el("path", { d:`M ${sx} ${sy} A ${r} ${r} 0 0 0 ${lx} ${ly}`, fill:"none", stroke, "stroke-width":1.2, "stroke-dasharray":"3 3", opacity:0.6 }));
+      if (!isDraft) {
+        const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+        const t = el("text", { x:mx, y:my-7, "font-size":12, "font-weight":700, fill:stroke, "font-family":"Arial", "text-anchor":"middle" });
+        t.textContent = "GATE"; g.appendChild(t);
+      }
+    }
+    if (selected || isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
+  }
   // ── FREE DRAW ──
   else if (m.type === "draw") {
     const d = m.points.map((p,i) => `${i?"L":"M"}${p.x},${p.y}`).join(" ");
     g.appendChild(el("path", { d, fill:"none", stroke:PALETTE.draw, "stroke-width":3, "stroke-linecap":"round", "stroke-linejoin":"round" }));
   }
   // ── POLYGON ZONES (building, tpz) ──
-  else if (POLY_TOOLS.includes(m.type)) {
+  else if (POLY_TOOLS.includes(m.type) && m.points) {
     drawPolyZone(g, m, isDraft, selected, stroke);
   }
-  // ── RECT ZONES (storage, laydown, exclusion, parking, amenities, assembly) ──
-  else if (RECT_TOOLS.includes(m.type)) {
+  // ── LEGACY RECT ZONES (older saved items stored as w/h rectangles) ──
+  else if ((RECT_TOOLS.includes(m.type) || POLY_TOOLS.includes(m.type)) && m.w !== undefined) {
     drawRectZone(g, m, isDraft, selected, stroke);
   }
   // ── CIRCLE MARKERS (landfill, recycle, organic) ──
@@ -694,15 +741,49 @@ function drawRectZone(g, m, isDraft, selected, stroke) {
 function drawPolyZone(g, m, isDraft, selected, stroke) {
   const pts = (isDraft && m.preview) ? [...m.points, m.preview] : m.points;
   const ptsStr = pts.map(p => `${p.x},${p.y}`).join(" ");
-  if (m.type === "building") {
-    g.appendChild(el("polygon", { points:ptsStr, fill:stroke, "fill-opacity":0.22, stroke, "stroke-width":3, "stroke-linejoin":"round", opacity:isDraft?0.7:1 }));
-  } else { // tpz
-    g.appendChild(el("polygon", { points:ptsStr, fill:stroke, "fill-opacity":0.14, stroke, "stroke-width":2.5, "stroke-dasharray":"6 5", "stroke-linejoin":"round", opacity:isDraft?0.7:1 }));
+  const type = m.type;
+  let dash = null, fillOp = 0.18, sw = 2.5;
+
+  if (type === "building") { fillOp = 0.22; sw = 3; }
+  else if (type === "tpz") { fillOp = 0.14; dash = "6 5"; }
+  else if (type === "laydown") { dash = "10 6"; }
+  else if (type === "exclusion") { fillOp = 0.12; sw = 3; }
+  else if (type === "assembly") { fillOp = 0.18; sw = 3; }
+  else if (type === "storage") { fillOp = 0.14; }
+  else if (type === "parking") { fillOp = 0.12; }
+  else { fillOp = 0.20; }   // toilet/rest/lunch amenities
+
+  const polyAttrs = { points:ptsStr, fill:stroke, "fill-opacity":fillOp, stroke, "stroke-width":sw, "stroke-linejoin":"round", opacity:isDraft?0.7:1 };
+  if (dash) polyAttrs["stroke-dasharray"] = dash;
+  g.appendChild(el("polygon", polyAttrs));
+
+  // exclusion hazard hatching, clipped to the polygon
+  if (type === "exclusion" && m.points.length >= 3) {
+    const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    const clipId = "clip"+m.id;
+    const defs = el("defs", {});
+    const cp = el("clipPath", { id:clipId });
+    cp.appendChild(el("polygon", { points:ptsStr }));
+    defs.appendChild(cp); g.appendChild(defs);
+    const stripes = el("g", { "clip-path":`url(#${clipId})` });
+    for (let i = minX - (maxY-minY); i < maxX; i += 14) {
+      stripes.appendChild(el("line", { x1:i, y1:minY, x2:i+(maxY-minY), y2:maxY, stroke, "stroke-width":3, opacity:0.25 }));
+    }
+    g.appendChild(stripes);
   }
+
   if (selected || isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
   if (!isDraft && m.points.length >= 3) {
     const c = centroid(m.points);
-    centeredLabel(g, m.label, c.x, c.y, stroke);
+    const ICON = { toilet:"🚻", rest:"🛋️", lunch:"🍴", assembly:"🚶" };
+    if (ICON[type]) {
+      const badge = el("text", { x:c.x, y:c.y-9, "font-size":16, "font-family":"Arial", "text-anchor":"middle", "dominant-baseline":"central" });
+      badge.textContent = ICON[type]; g.appendChild(badge);
+      centeredLabel(g, m.label, c.x, c.y+9, stroke);
+    } else {
+      centeredLabel(g, m.label, c.x, c.y, stroke);
+    }
   }
 }
 
@@ -876,6 +957,20 @@ window.addEventListener("keydown", (e) => {
     items = items.filter(i => i.id !== selectedId); selectedId = null; render();
   }
 });
+
+function toggleDim() {
+  dimOn = !dimOn;
+  const btn = document.getElementById("dimBtn");
+  const slider = document.getElementById("dimSlider");
+  if (btn) btn.classList.toggle("on", dimOn);
+  if (slider) slider.disabled = !dimOn;
+  render();
+}
+function setDim(v) {
+  dimLevel = Math.max(0, Math.min(0.8, Number(v) / 100));
+  if (!dimOn) { dimOn = true; const b = document.getElementById("dimBtn"); if (b) b.classList.add("on"); }
+  render();
+}
 
 function undo() { draft = null; items.pop(); render(); }
 function clearAll() { items = []; selectedId = null; draft = null; render(); }
