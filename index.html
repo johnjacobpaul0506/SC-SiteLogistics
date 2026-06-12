@@ -587,27 +587,21 @@ function drawShape(m, isDraft) {
   // ── GATE ──
   else if (m.type === "gate") {
     const pts = (isDraft && m.preview) ? [...m.points, m.preview] : m.points;
-    // posts at each vertex
-    pts.forEach(p => g.appendChild(el("rect", { x:p.x-3, y:p.y-3, width:6, height:6, fill:stroke })));
     if (pts.length >= 2) {
       const a = pts[0], b = pts[pts.length-1];
-      const len = Math.hypot(b.x-a.x, b.y-a.y);
-      // dashed opening line between posts
-      g.appendChild(el("line", { x1:a.x, y1:a.y, x2:b.x, y2:b.y, stroke, "stroke-width":2, "stroke-dasharray":"5 4", opacity:0.7 }));
-      // gate leaf (solid) swinging from the first post, ~70% of span
-      const ang = Math.atan2(b.y-a.y, b.x-a.x) - Math.PI/4;   // 45° swing
-      const leaf = len * 0.7;
-      const lx = a.x + Math.cos(ang)*leaf, ly = a.y + Math.sin(ang)*leaf;
-      g.appendChild(el("line", { x1:a.x, y1:a.y, x2:lx, y2:ly, stroke, "stroke-width":4, "stroke-linecap":"round" }));
-      // swing arc
-      const r = leaf, a0 = Math.atan2(b.y-a.y, b.x-a.x), a1 = ang;
-      const sx = a.x + Math.cos(a0)*r, sy = a.y + Math.sin(a0)*r;
-      g.appendChild(el("path", { d:`M ${sx} ${sy} A ${r} ${r} 0 0 0 ${lx} ${ly}`, fill:"none", stroke, "stroke-width":1.2, "stroke-dasharray":"3 3", opacity:0.6 }));
+      // two solid posts at each end
+      g.appendChild(el("rect", { x:a.x-3.5, y:a.y-3.5, width:7, height:7, rx:1, fill:stroke }));
+      g.appendChild(el("rect", { x:b.x-3.5, y:b.y-3.5, width:7, height:7, rx:1, fill:stroke }));
+      // open gap between the posts (no fence line drawn = the opening)
+      g.appendChild(el("line", { x1:a.x, y1:a.y, x2:b.x, y2:b.y, stroke, "stroke-width":2, "stroke-dasharray":"4 5", opacity:0.5 }));
+      // label centred on the opening
       if (!isDraft) {
         const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
-        const t = el("text", { x:mx, y:my-7, "font-size":12, "font-weight":700, fill:stroke, "font-family":"Arial", "text-anchor":"middle" });
+        const t = el("text", { x:mx, y:my-8, "font-size":13, "font-weight":700, fill:stroke, "font-family":"Arial", "text-anchor":"middle" });
         t.textContent = "GATE"; g.appendChild(t);
       }
+    } else if (pts.length === 1) {
+      g.appendChild(el("rect", { x:pts[0].x-3.5, y:pts[0].y-3.5, width:7, height:7, rx:1, fill:stroke }));
     }
     if (selected || isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
   }
