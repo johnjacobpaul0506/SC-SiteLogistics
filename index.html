@@ -72,10 +72,16 @@ body { font-family: Arial, sans-serif; background: #001B49; color: #f9fafb; min-
 .main { flex: 1; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; min-width: 0; min-height: 0; }
 .hint-bar { background: #1e293b; border: 1px solid #1e3a6e; border-radius: 8px; padding: 10px 16px; font-size: 12.5px; color: #cbd5e1; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .hint-bar b { color: #93c5fd; }
-.stage-host { flex: 1; min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px; }
-.canvas-wrap { background: #1e293b; border: 1px solid #1e3a6e; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); position: relative; display: block; }
+.stage-outer { flex: 1; min-height: 0; min-width: 0; position: relative; display: flex; }
+.stage-host { flex: 1; min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 4px; }
+.canvas-wrap { background: #1e293b; border: 1px solid #1e3a6e; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); position: relative; display: block; flex-shrink: 0; margin: auto; }
 .canvas-text-input { position: absolute; z-index: 50; min-width: 120px; min-height: 28px; padding: 4px 6px; border: 2px solid #000; border-radius: 4px; background: rgba(255,255,255,0.96); color: #000; font-family: Arial, sans-serif; font-weight: 700; line-height: 1.25; resize: both; outline: none; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
 .canvas-wrap svg { display: block; width: 100%; height: 100%; touch-action: none; background: #fff; border-radius: 9px; }
+.zoom-controls { position: absolute; bottom: 12px; right: 14px; z-index: 40; display: flex; align-items: center; gap: 4px; background: rgba(10,31,78,0.92); border: 1px solid #1e3a6e; border-radius: 10px; padding: 5px 7px; box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
+.zoom-btn { width: 30px; height: 30px; border: none; background: #1e3a6e; color: #cfe0ff; font-size: 18px; font-weight: bold; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; font-family: Arial, sans-serif; }
+.zoom-btn:hover { background: #3b82f6; color: #fff; }
+.zoom-reset { font-size: 15px; }
+.zoom-lbl { color: #cfe0ff; font-size: 12px; font-weight: bold; min-width: 42px; text-align: center; font-family: Arial, sans-serif; }
 
 .idle { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #4b6a9e; text-align: center; }
 .idle-icon { font-size: 50px; opacity: 0.25; }
@@ -205,7 +211,15 @@ body { font-family: Arial, sans-serif; background: #001B49; color: #f9fafb; min-
     <div class="hint-bar" id="hintBar">
       <span>🖱️</span> <span id="hintText">Loading site plan…</span>
     </div>
-    <div id="stage" class="stage-host"></div>
+    <div class="stage-outer">
+      <div id="stage" class="stage-host"></div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomOut()" title="Zoom out">−</button>
+        <span class="zoom-lbl" id="zoomLbl">100%</span>
+        <button class="zoom-btn" onclick="zoomIn()" title="Zoom in">+</button>
+        <button class="zoom-btn zoom-reset" onclick="zoomReset()" title="Fit to screen">⤢</button>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -240,26 +254,27 @@ const TOOLS = {
   draw:      { label: "Free Draw",      icon: "✏️", hint: "Click and drag to sketch freely." },
   erase:     { label: "Delete",         icon: "🧽", hint: "Click an item to remove it." },
 };
-// Distinct, well-spaced hues — every neighbour clearly different
+// High-contrast palette tuned to stand out against a green-heavy plan
+// (avoids greens/teals; favours magenta, red, orange, purple, blue, dark neutrals)
 const PALETTE = {
-  access:   "#475569",  // slate grey
-  fence:    "#f97316",  // orange
-  gate:     "#0d9488",  // teal — gate
+  access:   "#1e293b",  // near-black slate (road)
+  fence:    "#ea580c",  // orange
+  gate:     "#0ea5e9",  // sky blue
   crane:    "#dc2626",  // red
   building: "#7c3aed",  // violet
-  storage:  "#0891b2",  // teal/cyan
-  laydown:  "#ca8a04",  // mustard/amber
+  storage:  "#2563eb",  // blue
+  laydown:  "#b45309",  // dark amber/brown
   exclusion:"#e11d48",  // crimson (hazard)
-  tpz:      "#16a34a",  // green
-  parking:  "#4f46e5",  // indigo
-  toilet:   "#0d9488",  // dark teal
+  tpz:      "#9333ea",  // purple (tree protection — kept off-green on purpose)
+  parking:  "#4338ca",  // deep indigo
+  toilet:   "#0369a1",  // deep blue
   rest:     "#db2777",  // pink
-  lunch:    "#d97706",  // burnt orange
-  landfill: "#57534e",  // dark stone (general waste)
-  recycle:  "#2563eb",  // recycling blue
-  organic:  "#4d7c0f",  // organic green
-  assembly: "#15803d",  // assembly green
-  camera:   "#0369a1",  // security blue
+  lunch:    "#c2410c",  // burnt orange
+  landfill: "#44403c",  // dark stone
+  recycle:  "#1d4ed8",  // strong blue
+  organic:  "#a16207",  // dark gold (green waste, shown in gold for contrast)
+  assembly: "#be123c",  // rose-red
+  camera:   "#9d174d",  // dark magenta
   text:     "#000000",  // text notes — black
   draw:     "#0f172a"   // near-black
 };
@@ -437,11 +452,25 @@ function buildStage() {
   svg.addEventListener("touchstart", onDown, {passive:false});
   svg.addEventListener("touchmove", onMove, {passive:false});
   svg.addEventListener("touchend", onUp);
+  // Ctrl/Cmd + wheel to zoom, focused on the cursor (bind once)
+  const host = document.getElementById("stage");
+  if (host && !host._zoomBound) {
+    host._zoomBound = true;
+    host.addEventListener("wheel", (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const rect = host.getBoundingClientRect();
+      const focus = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      setZoom(zoom + (e.deltaY < 0 ? 0.2 : -0.2), focus);
+    }, { passive: false });
+  }
   fitStage();
   render();
 }
 
 // Size the canvas wrap to fit fully inside the stage host, preserving aspect ratio
+let baseFit = { w: 0, h: 0 };
+let zoom = 1;
 function fitStage() {
   if (!svg) return;
   const host = document.getElementById("stage");
@@ -453,9 +482,34 @@ function fitStage() {
   const ar = dims.w / dims.h;
   let w = availW, h = w / ar;
   if (h > availH) { h = availH; w = h * ar; }
-  wrap.style.width = Math.floor(w) + "px";
-  wrap.style.height = Math.floor(h) + "px";
+  baseFit = { w: Math.floor(w), h: Math.floor(h) };
+  applyZoom();
 }
+
+function applyZoom() {
+  const wrap = svg && svg.parentElement;
+  if (!wrap || !baseFit.w) return;
+  wrap.style.width = Math.round(baseFit.w * zoom) + "px";
+  wrap.style.height = Math.round(baseFit.h * zoom) + "px";
+  const lbl = document.getElementById("zoomLbl");
+  if (lbl) lbl.textContent = Math.round(zoom * 100) + "%";
+}
+
+function setZoom(z, focus) {
+  const host = document.getElementById("stage");
+  const prev = zoom;
+  zoom = Math.max(1, Math.min(5, z));
+  applyZoom();
+  // keep the focal point stable when zooming with the wheel
+  if (host && focus && prev !== zoom) {
+    const ratio = zoom / prev;
+    host.scrollLeft = (host.scrollLeft + focus.x) * ratio - focus.x;
+    host.scrollTop  = (host.scrollTop + focus.y) * ratio - focus.y;
+  }
+}
+function zoomIn()  { setZoom(zoom + 0.25); }
+function zoomOut() { setZoom(zoom - 0.25); }
+function zoomReset() { zoom = 1; const h = document.getElementById("stage"); if (h){h.scrollLeft=0;h.scrollTop=0;} applyZoom(); }
 
 window.addEventListener("resize", fitStage);
 
