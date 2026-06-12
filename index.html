@@ -265,7 +265,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs
 const SVGNS = "http://www.w3.org/2000/svg";
 
 const TOOLS = {
-  select:    { label: "Select / Move",  icon: "✋", hint: "Drag items to reposition. Click an item to select it, then drag its handles to reshape, or press Delete to remove." },
+  select:    { label: "Select / Move / Edit",  icon: "✋", hint: "Click an item to select it, then drag it to move, or drag its white handles to reshape. Press Delete to remove." },
   access:    { label: "Access Road",    icon: "🛣️", hint: "Click to add points along the access road. Double-click or press Esc to finish." },
   fence:     { label: "Fencing / Hoarding", icon: "🚧", hint: "Click to add points along the fence line. Double-click or press Esc to finish." },
   gate:      { label: "Gate",           icon: "🚪", hint: "Click the two ends of the gate opening, then double-click or press Esc to finish." },
@@ -275,10 +275,10 @@ const TOOLS = {
   exclusion: { label: "Exclusion Zone", icon: "⛔", hint: "Click each corner of the area. Double-click or press Esc to close the shape." },
   tpz:       { label: "Tree Protection",icon: "🌳", hint: "Click to drop the centre, move the mouse to size the protection radius, then double-click or press Esc to finish." },
   parking:   { label: "Parking",        icon: "🅿️", hint: "Click each corner of the area. Double-click or press Esc to close the shape." },
-  toilet:    { label: "Toilets",        icon: "🚻", hint: "Click to place a 6m × 3m toilet block (you can rotate/move it after)." },
-  lunch:     { label: "Lunch Area",     icon: "🍴", hint: "Click to place a 6m × 3m lunch / crib room (you can rotate/move it after)." },
-  rest:      { label: "Office / Safety Room", icon: "🛟", hint: "Click each corner of the area. Double-click or press Esc to close the shape." },
-  landfill:  { label: "Organic Waste",  icon: "🌿", hint: "Click to place an organic waste point." },
+  toilet:    { label: "Toilets",        icon: "🚻", hint: "Click to place a 12m × 6m toilet block (move or resize it after)." },
+  lunch:     { label: "Lunch Area",     icon: "🍴", hint: "Click to place a 12m × 6m lunch / crib room (move or resize it after)." },
+  rest:      { label: "Office / Safety Room", icon: "🛟", hint: "Click 4 corner points to draw the room at any angle. Double-click or press Esc to finish." },
+  landfill:  { label: "Landfill",       icon: "🗑️", hint: "Click to place a landfill waste point." },
   recycle:   { label: "Recycling",      icon: "♻️", hint: "Click to place a recycling collection point." },
   assembly:  { label: "Assembly Point", icon: "🚶", hint: "Click to place an emergency assembly point." },
   camera:    { label: "Security Camera",icon: "📹", hint: "Click to place a 360° security camera (CCTV) with full coverage." },
@@ -300,7 +300,7 @@ const PALETTE = {
   toilet:   "#0369a1",  // deep blue
   lunch:    "#c2410c",  // burnt orange
   rest:     "#db2777",  // pink (office / safety room)
-  landfill: "#15803d",  // green (organic waste)
+  landfill: "#57534e",  // dark stone (landfill)
   recycle:  "#1d4ed8",  // strong blue
   assembly: "#be123c",  // rose-red
   camera:   "#9d174d",  // dark magenta
@@ -316,7 +316,7 @@ const CIRCLE_TOOLS = ["landfill", "recycle"];              // fixed-size waste c
 const POINT_TOOLS = ["camera", "assembly"];                 // single-click icon markers
 const FIXED_RECT_TOOLS = ["toilet", "lunch"];              // fixed real-world size rectangles
 const RECT_LABEL = { storage:"Storage", laydown:"Laydown", exclusion:"EXCLUSION", tpz:"TPZ", parking:"Parking", toilet:"Toilets", lunch:"Lunch Area", rest:"Office / Safety" };
-const CIRCLE_LABEL = { landfill:"Organic", recycle:"Recycle" };
+const CIRCLE_LABEL = { landfill:"Landfill", recycle:"Recycle" };
 const CIRCLE_R = 26;   // standard radius for waste circles
 
 // Real-world scale: ortho.pdf sheet is 332 mm wide at 1:848
@@ -344,7 +344,7 @@ const LEGEND = [
   ["Access Road","access"],["Fencing / Hoarding","fence"],["Gate","gate"],["Crane + swing","crane"],
   ["Material Storage","storage"],["Laydown / Dump","laydown"],["Exclusion Zone","exclusion"],
   ["Tree Protection","tpz"],["Parking","parking"],["Toilets","toilet"],["Lunch Area","lunch"],
-  ["Office / Safety Room","rest"],["Organic Waste","landfill"],["Recycling","recycle"],
+  ["Office / Safety Room","rest"],["Landfill","landfill"],["Recycling","recycle"],
   ["Assembly Point","assembly"],["Security Camera","camera"]
 ];
 
@@ -633,12 +633,21 @@ function render() {
   if (!draft && !drag) saveState();
 }
 
-// Draggable handles for the currently selected item (radius tools + fixed rects)
+// Draggable handles for the currently selected item
 function drawEditHandles() {
   const m = items.find(i => i.id === selectedId);
   if (!m) return;
   const stroke = PALETTE[m.type] || "#000";
 
+  // vertex handles for any points-based item (roads, fences, gate, polygons, free draw)
+  if (m.points && m.points.length) {
+    m.points.forEach((p, i) => {
+      const hc = el("circle", { cx:p.x, cy:p.y, r:6, fill:"#fff", stroke, "stroke-width":2.5, "data-chrome":1 });
+      hc.style.cursor = "grab";
+      hc.addEventListener("mousedown", (e) => { e.stopPropagation(); drag = { mode:"vertex", idx:i }; });
+      svg.appendChild(hc);
+    });
+  }
   // radius handle for crane / tpz
   if (RADIUS_TOOLS.includes(m.type) && m.r !== undefined) {
     const h = el("circle", { cx:m.x + m.r, cy:m.y, r:8, fill:"#fff", stroke, "stroke-width":2.5, "data-chrome":1 });
@@ -648,7 +657,6 @@ function drawEditHandles() {
   }
   // corner handle for fixed rectangles (toilet / lunch)
   if (FIXED_RECT_TOOLS.includes(m.type) && m.w !== undefined) {
-    // dashed outline
     svg.appendChild(el("rect", { x:m.x, y:m.y, width:m.w, height:m.h, fill:"none", stroke:"#000", "stroke-width":1, "stroke-dasharray":"4 4", "data-chrome":1,
       transform:`rotate(${m.rot||0} ${m.x+m.w/2} ${m.y+m.h/2})` }));
     const h = el("circle", { cx:m.x + m.w, cy:m.y + m.h, r:8, fill:"#fff", stroke, "stroke-width":2.5, "data-chrome":1 });
@@ -693,7 +701,7 @@ function drawShape(m, isDraft) {
     g.appendChild(el("path", { d, fill:"none", stroke:"#0f172a", "stroke-width":30, "stroke-linecap":"round", "stroke-linejoin":"round", opacity: isDraft?0.4:0.85 }));
     g.appendChild(el("path", { d, fill:"none", stroke, "stroke-width":20, "stroke-linecap":"round", "stroke-linejoin":"round" }));
     g.appendChild(el("path", { d, fill:"none", stroke:"#fff", "stroke-width":2, "stroke-dasharray":"16 18", opacity:0.9 }));
-    if (selected || isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
+    if (isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
   }
   // ── FENCING / HOARDING ──
   else if (m.type === "fence") {
@@ -701,7 +709,7 @@ function drawShape(m, isDraft) {
     const d = pts.map((p,i) => `${i?"L":"M"}${p.x},${p.y}`).join(" ");
     g.appendChild(el("path", { d, fill:"none", stroke, "stroke-width":3, "stroke-linecap":"round", "stroke-linejoin":"round" }));
     g.appendChild(el("path", { d, fill:"none", stroke, "stroke-width":9, "stroke-linecap":"butt", "stroke-dasharray":"1 11", opacity:0.85 }));
-    if (selected || isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
+    if (isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
   }
   // ── GATE ──
   else if (m.type === "gate") {
@@ -722,7 +730,7 @@ function drawShape(m, isDraft) {
     } else if (pts.length === 1) {
       g.appendChild(el("rect", { x:pts[0].x-3.5, y:pts[0].y-3.5, width:7, height:7, rx:1, fill:stroke }));
     }
-    if (selected || isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
+    if (isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
   }
   // ── FREE DRAW ──
   else if (m.type === "draw") {
@@ -752,7 +760,7 @@ function drawShape(m, isDraft) {
   // ── CIRCLE MARKERS (organic, recycle) ──
   else if (CIRCLE_TOOLS.includes(m.type)) {
     g.appendChild(el("circle", { cx:m.x, cy:m.y, r:m.r, fill:stroke, "fill-opacity":0.22, stroke, "stroke-width":2.5 }));
-    const ICON = { landfill:"🌿", recycle:"♻️" };
+    const ICON = { landfill:"🗑️", recycle:"♻️" };
     const badge = el("text", { x:m.x, y:m.y-2, "font-size":18, "font-family":"Arial", "text-anchor":"middle", "dominant-baseline":"central" });
     badge.textContent = ICON[m.type]; g.appendChild(badge);
     const t = el("text", { x:m.x, y:m.y + m.r + 11, "font-size":12, "font-weight":700, fill:stroke, "font-family":"Arial", "text-anchor":"middle" });
@@ -913,14 +921,7 @@ function drawPolyZone(g, m, isDraft, selected, stroke) {
     g.appendChild(stripes);
   }
 
-  if (selected || isDraft) pts.forEach((p,i) => {
-    const hc = el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 });
-    if (selected && !isDraft) {
-      hc.style.cursor = "grab";
-      hc.addEventListener("mousedown", (e) => { e.stopPropagation(); selectedId = m.id; drag = { mode:"vertex", idx:i }; });
-    }
-    g.appendChild(hc);
-  });
+  if (isDraft) pts.forEach(p => g.appendChild(el("circle", { cx:p.x, cy:p.y, r:5, fill:"#fff", stroke, "stroke-width":2, "data-chrome":1 })));
   if (!isDraft && m.points.length >= 3) {
     const c = centroid(m.points);
     const ICON = { rest:"🛟" };
@@ -991,7 +992,7 @@ function onDown(evt) {
   }
   // Fixed real-world-size rectangles (toilets 6x3m, lunch 6x3m) — single click
   if (FIXED_RECT_TOOLS.includes(tool)) {
-    const w = metresToUnits(6), h = metresToUnits(3);
+    const w = metresToUnits(12), h = metresToUnits(6);
     items.push({ id:uid(), type:tool, x:p.x - w/2, y:p.y - h/2, w, h, rot:0, label: RECT_LABEL[tool] });
     render(); return;
   }
@@ -1174,10 +1175,13 @@ function confirmExport() {
     const overlay = new Image();
     overlay.onload = () => {
       pctx.drawImage(overlay, 0, 0, W, H);
-      loadImg("logo.png", (logo1) => {
-        loadImg("logo2.png", (logo2) => {
-          try { buildPdf(planCanvas, name, year, logo1, logo2); }
-          catch (err) { showToast("Could not generate PDF locally. Works once hosted online."); }
+      // pre-render exact legend symbols, then load logos, then build
+      renderLegendSymbols((symbolMap) => {
+        loadImg("logo.png", (logo1) => {
+          loadImg("logo2.png", (logo2) => {
+            try { buildPdf(planCanvas, name, year, logo1, logo2, symbolMap); }
+            catch (err) { showToast("Could not generate PDF locally. Works once hosted online."); }
+          });
         });
       });
     };
@@ -1194,7 +1198,7 @@ function loadImg(src, cb) {
   img.src = src;
 }
 
-function buildPdf(planCanvas, name, year, logo1, logo2) {
+function buildPdf(planCanvas, name, year, logo1, logo2, symbolMap) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
   const PW = doc.internal.pageSize.getWidth();   // 420
@@ -1246,7 +1250,7 @@ function buildPdf(planCanvas, name, year, logo1, logo2) {
   placeLogos(doc, tx, M, tw, logoBoxH, logo1, logo2);
 
   // Legend box (directly below the logos)
-  drawPdfLegend(doc, tx, M + logoBoxH, tw);
+  drawPdfLegendWithSymbols(doc, tx, M + logoBoxH, tw, symbolMap || {});
 
   // ── Project information block, grouped at the BOTTOM ──
   const today = new Date();
@@ -1254,13 +1258,12 @@ function buildPdf(planCanvas, name, year, logo1, logo2) {
   const mm = String(today.getMonth()+1).padStart(2,"0");
   const dateStr = dd + "/" + mm + "/" + today.getFullYear();
 
-  // five stacked bands (label above, value below)
+  // four stacked bands (label above, value below)
   const r1 = 16;  // PROJECT NAME & ADDRESS (taller, wraps)
-  const r2 = 12;  // DRAWING TITLE
-  const r3 = 12;  // SCALE | DATE
-  const r4 = 12;  // DRAWN BY | YEAR
-  const r5 = 12;  // REVISION
-  const blockH = r1 + r2 + r3 + r4 + r5;
+  const r2 = 13;  // DRAWING TITLE
+  const r3 = 13;  // DATE | REVISION
+  const r4 = 13;  // DRAWN BY | YEAR
+  const blockH = r1 + r2 + r3 + r4;
   const bx = tx, bw = tw;
   let by = (PH - M) - blockH;   // anchored to bottom inner edge
 
@@ -1282,20 +1285,16 @@ function buildPdf(planCanvas, name, year, logo1, logo2) {
   value("Site Logistics Plan", bx, by, bw);
   by += r2; doc.line(bx, by, bx + bw, by);
 
-  // Row 3 — SCALE | DATE
+  // Row 3 — DATE | REVISION
   doc.line(bx + half, by, bx + half, by + r3);
-  label("SCALE", bx, by);              value("1:848", bx, by, half);
-  label("DATE", bx + half, by);        value(dateStr, bx + half, by, half);
+  label("DATE", bx, by);               value(dateStr, bx, by, half);
+  label("REVISION", bx + half, by);    value("A", bx + half, by, half);
   by += r3; doc.line(bx, by, bx + bw, by);
 
   // Row 4 — DRAWN BY | YEAR  (Year adjacent to Name)
   doc.line(bx + half, by, bx + half, by + r4);
   label("DRAWN BY", bx, by);           value(name || "-", bx, by, half);
   label("YEAR", bx + half, by);        value("Year " + (year || "-"), bx + half, by, half);
-  by += r4; doc.line(bx, by, bx + bw, by);
-
-  // Row 5 — REVISION
-  label("REVISION", bx, by);           value("A", bx, by, bw);
 
   const safeName = (name || "Builder").replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, " ");
   const safeYear = (year || "").replace(/[^\w]/g, "");
@@ -1325,9 +1324,81 @@ function placeLogos(doc, tx, ty, tw, boxH, logo1, logo2) {
   });
 }
 
-function drawPdfLegend(doc, tx, ty, tw) {
+
+// Build a tiny sample item of a given tool type, centred in a small box
+function sampleItemForLegend(key, S) {
+  const cx = S/2, cy = S/2;
+  const r = S*0.32;
+  if (LINE_TOOLS.includes(key)) {
+    // a short horizontal segment
+    return { id: 9999, type: key, points: [ {x:S*0.16, y:cy}, {x:S*0.84, y:cy} ] };
+  }
+  if (RADIUS_TOOLS.includes(key)) {
+    return { id: 9999, type: key, x: cx, y: cy, r: r, label: "" };
+  }
+  if (CIRCLE_TOOLS.includes(key)) {
+    return { id: 9999, type: key, x: cx, y: cy, r: r, label: "" };
+  }
+  if (key === "assembly" || key === "camera") {
+    return { id: 9999, type: key, x: cx, y: cy };
+  }
+  if (FIXED_RECT_TOOLS.includes(key)) {
+    return { id: 9999, type: key, x: S*0.18, y: S*0.3, w: S*0.64, h: S*0.4, rot: 0, label: "" };
+  }
+  // polygons (storage, laydown, exclusion, parking, rest) — a small quad
+  return { id: 9999, type: key, label: "", points: [
+    {x:S*0.2,y:S*0.28}, {x:S*0.8,y:S*0.28}, {x:S*0.8,y:S*0.72}, {x:S*0.2,y:S*0.72}
+  ]};
+}
+
+// Render the exact on-plan symbol for a tool type to a PNG data URL
+function renderSymbolDataUrl(key, cb) {
+  const S = 80;
+  const ns = "http://www.w3.org/2000/svg";
+  const tmp = document.createElementNS(ns, "svg");
+  tmp.setAttribute("viewBox", `0 0 ${S} ${S}`);
+  tmp.setAttribute("width", S); tmp.setAttribute("height", S);
+  // temporarily point the global svg + dims at this tmp so drawShape works
+  const realSvg = svg, realDims = dims;
+  svg = tmp; dims = { w: S, h: S };
+  try {
+    const item = sampleItemForLegend(key, S);
+    drawShape(item, false);
+    // strip any chrome/labels artifacts
+    tmp.querySelectorAll("[data-chrome]").forEach(n => n.remove());
+    tmp.querySelectorAll("text").forEach(n => n.remove());
+    tmp.setAttribute("opacity", "1");
+  } catch (e) {}
+  svg = realSvg; dims = realDims;
+  const xml = new XMLSerializer().serializeToString(tmp);
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement("canvas");
+    c.width = S; c.height = S;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(img, 0, 0, S, S);
+    cb(c.toDataURL("image/png"));
+  };
+  img.onerror = () => cb(null);
+  img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
+}
+
+// Pre-render symbol images for all used legend types, then call done(map)
+function renderLegendSymbols(done) {
   const entries = usedTypes();
-  const pad = 4, rowH = 7.5, sw = 6;     // taller rows + wider symbol cell
+  const map = {};
+  let i = 0;
+  const next = () => {
+    if (i >= entries.length) { done(map); return; }
+    const key = entries[i][1]; i++;
+    renderSymbolDataUrl(key, (url) => { if (url) map[key] = url; next(); });
+  };
+  next();
+}
+
+function drawPdfLegendWithSymbols(doc, tx, ty, tw, symbolMap) {
+  const entries = usedTypes();
+  const pad = 4, rowH = 8, sw = 6.5;
   const titleH = 8;
   const h = titleH + 4 + entries.length * rowH + 2;
   doc.setFillColor(0, 25, 72);
@@ -1336,54 +1407,20 @@ function drawPdfLegend(doc, tx, ty, tw) {
   doc.text("SITE LEGEND", tx + pad, ty + titleH - 2.4);
   let ry = ty + titleH + 6;
   doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
-  const symX = tx + pad + sw/2;          // centre of the symbol cell
   for (const [label, key] of entries) {
-    const cy = ry - sw/2 + 0.5;
-    drawLegendSymbol(doc, key, symX, cy, sw);
+    const cyTop = ry - sw + 0.5;
+    if (symbolMap[key]) {
+      doc.addImage(symbolMap[key], "PNG", tx + pad, cyTop, sw, sw);
+    } else {
+      const rgb = hexToRgb(PALETTE[key] || "#333");
+      doc.setFillColor(rgb.r, rgb.g, rgb.b);
+      doc.rect(tx + pad, cyTop, sw, sw, "F");
+    }
     doc.setTextColor(20);
     doc.text(label, tx + pad + sw + 3.5, ry);
     ry += rowH;
   }
   return h;
-}
-
-// Draw a small representative symbol for each tool type in the legend
-function drawLegendSymbol(doc, key, cx, cy, s) {
-  const rgb = hexToRgb(PALETTE[key] || "#333");
-  doc.setDrawColor(rgb.r, rgb.g, rgb.b);
-  doc.setFillColor(rgb.r, rgb.g, rgb.b);
-  const r = s/2;
-
-  if (key === "access") {                       // thick road line
-    doc.setLineWidth(1.6); doc.line(cx-r, cy, cx+r, cy);
-    doc.setDrawColor(255,255,255); doc.setLineWidth(0.3); doc.setLineDashPattern([0.6,0.6],0);
-    doc.line(cx-r, cy, cx+r, cy); doc.setLineDashPattern([],0);
-  } else if (key === "fence") {                 // dashed line
-    doc.setLineWidth(0.8); doc.setLineDashPattern([0.8,0.6],0);
-    doc.line(cx-r, cy, cx+r, cy); doc.setLineDashPattern([],0);
-  } else if (key === "gate") {                  // two posts + gap
-    doc.rect(cx-r, cy-1, 1.4, 2, "F"); doc.rect(cx+r-1.4, cy-1, 1.4, 2, "F");
-    doc.setLineWidth(0.3); doc.setLineDashPattern([0.5,0.5],0);
-    doc.line(cx-r+1.4, cy, cx+r-1.4, cy); doc.setLineDashPattern([],0);
-  } else if (key === "crane" || key === "tpz") {// dashed circle (radius zones)
-    doc.setLineWidth(0.5); doc.setLineDashPattern([0.7,0.5],0);
-    doc.circle(cx, cy, r, "S"); doc.setLineDashPattern([],0);
-    doc.circle(cx, cy, 0.8, "F");
-  } else if (key === "exclusion") {             // hatched square
-    doc.setLineWidth(0.4); doc.rect(cx-r, cy-r, s, s, "S");
-    doc.line(cx-r, cy+r, cx+r, cy-r); doc.line(cx-r, cy, cx, cy-r);
-  } else if (key === "landfill" || key === "recycle" || key === "assembly") {
-    doc.circle(cx, cy, r, "F");                 // filled circle markers
-  } else if (key === "camera") {                // small dome + coverage ring
-    doc.setLineWidth(0.3); doc.setLineDashPattern([0.5,0.4],0);
-    doc.circle(cx, cy, r, "S"); doc.setLineDashPattern([],0);
-    doc.circle(cx, cy, 1.1, "F");
-  } else {                                       // zones / rects: filled square
-    doc.setFillColor(rgb.r, rgb.g, rgb.b);
-    doc.setDrawColor(rgb.r, rgb.g, rgb.b);
-    doc.setLineWidth(0.4);
-    doc.rect(cx-r, cy-r, s, s, "FD");
-  }
 }
 
 function usedTypes() {
